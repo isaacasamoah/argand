@@ -1,0 +1,41 @@
+# Argand
+
+An independent senior-maths tutoring prototype, inspired by the clarity of Mathspace's learning interface. It uses its own name, icon and original questions, with no Mathspace logo or affiliation.
+
+## Run locally
+
+```sh
+uv venv .venv
+uv pip install --python .venv/bin/python -r requirements.txt
+npm ci
+npm run build
+.venv/bin/uvicorn server:app --host 127.0.0.1 --port 18770
+```
+
+Open http://127.0.0.1:18770. The server serves the built React app and API on the same origin. Rebuild the frontend after editing it. SQLite attempt records are local and gitignored.
+
+## Try it
+
+1. Submit `2` for `z³ = 8`. It is a valid but incomplete root set.
+2. Submit `2,-1+i*sqrt(3),-1-i*sqrt(3)`. The root set is checked, but prose reasoning is not certified.
+3. Ask for hints or explicitly reveal the worked solution. The UI labels authored guidance honestly.
+4. Open Evidence lab, load a deliberate failure and inspect the mock investigation. The response incorrectly calls a partial set complete. The report quotes the immutable student, checker and tutor evidence.
+
+Three exercises are implemented: cube roots of 8, cube roots of −8, and fourth roots of unity. Root entry supports exact integers, fractions, `i`, `sqrt(nonnegative integer)`, arithmetic and bounded integer powers. Unsupported notation and prose remain not checked. The parser never evaluates Python input.
+
+## Evaluation services
+
+Jev integration calls TypeSafe's typed API with pinned `jev-1.13.0`, eight independent behavioural assertions, four possible choices and a provisional 0.90 confidence threshold. It requires `TYPESAFE_API_KEY` in the server environment, loaded through the canonical service loader. No keys belong in this repository. API errors do not become passes. The threshold has not been calibrated; no live evaluation is claimed until a response is recorded.
+
+The OpenAI investigator is intentionally mocked. The deliberate failure has an authored evidence statement; all other attempts return insufficient evidence rather than a fabricated diagnosis. No OpenAI call is made. The tutor itself also uses authored guidance for this first slice.
+
+## Verify
+
+```sh
+npm run build
+.venv/bin/python -m pytest -q
+```
+
+Current limits: no free-form AI tutoring, prose proof checking, handwriting, school accounts, teacher-reviewed curriculum certification, twelve-problem corpus or full model/harness comparison. This local prototype is for adult review, not deployment to students. No real learning gains have been measured.
+
+Source references: [QCAA Specialist Mathematics syllabus](https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_maths_specialist_25_syll.pdf), [TypeSafe API](https://docs.typesafe.ai/api), [TypeSafe Choice](https://docs.typesafe.ai/primitives/choice).
