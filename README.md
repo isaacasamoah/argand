@@ -16,13 +16,13 @@ Open http://127.0.0.1:18770. The server serves the built React app and API on th
 
 ## Try it
 
-1. Explore the three-stage lesson: move a complex number, locate 2 + 0i, and cube each root. Then select Try it yourself.
+1. Explore the three-stage lesson: coordinates of 1 + i, its distance and angle, and squaring both roots of 2i. Then select Try it yourself.
 2. Submit `2` for `z³ = 8`. It is a valid but incomplete root set.
 2. Submit `2,-1+i*sqrt(3),-1-i*sqrt(3)`. The root set is checked, but prose reasoning is not certified.
 3. Ask for hints or explicitly reveal the worked solution. The UI labels authored guidance honestly.
 4. Open Evidence lab, load a deliberate failure and inspect the mock investigation. The response incorrectly calls a partial set complete. The report quotes the immutable student, checker and tutor evidence.
 
-Three exercises are implemented: cube roots of 8, cube roots of −8, and fourth roots of unity. Root entry supports exact integers, fractions, `i`, `sqrt(nonnegative integer)`, arithmetic and bounded integer powers. Unsupported notation and prose remain not checked. The parser never evaluates Python input.
+One practice exercise is implemented: cube roots of 8. The lesson uses square roots of 2i, so it does not disclose the practice answers. Root entry supports exact integers, fractions, `i`, `sqrt(nonnegative integer)`, arithmetic and bounded integer powers. Unsupported notation and prose remain not checked. The parser never evaluates Python input.
 
 ## Evaluation services
 

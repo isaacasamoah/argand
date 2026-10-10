@@ -8,9 +8,9 @@ def client(tmp_path,monkeypatch):
 @pytest.mark.parametrize('text,status',[('2','incomplete'),('2, 2, 2','incomplete'),('2, -1+i*sqrt(3), -1-i*sqrt(3)','complete'),('2, -1+sqrt(3)*i, -1-sqrt(3)*i','complete'),('8','incorrect'),('__import__("os").system("id")','not_checked'),('2**999999','not_checked'),('1/0','not_checked'),('2.0','not_checked'),('I think the answer is two','not_checked')])
 def test_exact_root_checker(text,status):assert server.check(server.PROBLEMS[0],text)['status']==status
 
-def test_transfer_and_unity():
- assert server.check(server.PROBLEMS[1],'-2,1+i*sqrt(3),1-i*sqrt(3)')['status']=='complete'
- assert server.check(server.PROBLEMS[2],'1,-1,i,-i')['status']=='complete'
+def test_single_practice(client):
+ assert [p['id'] for p in client.get('/api/config').json()['problems']]==['roots-8']
+ assert client.post('/api/attempts',json={'problem_id':'roots-minus8','text':'-2'}).status_code==400
 
 def test_no_false_jev_pass(client):
  a=client.post('/api/attempts',json={'problem_id':'roots-8','text':'2'}).json()
