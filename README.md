@@ -42,3 +42,12 @@ npm run build
 Current limits: no verified live voice trial yet, prose proof checking, handwriting, school accounts, teacher-reviewed curriculum certification, twelve-problem corpus or full model/harness comparison. This local prototype is for adult review, not deployment to students. No real learning gains have been measured.
 
 Source references: [QCAA Specialist Mathematics syllabus](https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_maths_specialist_25_syll.pdf), [TypeSafe API](https://docs.typesafe.ai/api), [TypeSafe Choice](https://docs.typesafe.ai/primitives/choice).
+
+
+## Shared lesson state and diagram tools
+
+The lesson controls and diagrams use one revisioned state in `src/lessonState.ts`. After changes settle for 200 ms, the same snapshot is sent to GPT-Live with `session.thinking.append` and to its reasoning backend with `response.item.create`. This debounce combines rapid slider movement; tools always read the current state immediately. Snapshot delivery does not guarantee a model has finished processing it.
+
+`read_lesson_state` returns the current slide, explanation, controls and graph values (or current practice). `update_diagram` operates the same controls as the learner: coordinates, root selection/squaring, wave phase and time. It requires the current revision; stale edits and controls not present on the current slide are rejected. Navigation remains learner-controlled. Tool results publish the resulting state to both models before reasoning continues.
+
+With the local server running and Python Playwright installed, run `python scripts/verify_lesson_tools.py`. It uses a simulated voice transport to exercise tool messages through the real UI, including stale edits, all interactive slides, practice transitions and equality of the state sent to both models. It makes no OpenAI call.

@@ -1,9 +1,8 @@
-import {useState,useEffect} from 'react';
-export function WaveExample({onContext}:{onContext:(s:string)=>void}){
- const[phase,setPhase]=useState(0),[time,setTime]=useState(0);
+import {useLessonState,updateLesson} from './lessonState';
+export function WaveExample(){
+ const{phase,time}=useLessonState();const setPhase=(phase:number)=>updateLesson({phase});const setTime=(time:number)=>updateLesson({time});
  const angle=(time+phase)*Math.PI/180,value=Math.cos(angle),x=105+55*value,y=85-55*Math.sin(angle);
  const path=Array.from({length:181},(_,j)=>`${j?'L':'M'}${35+j*350/180} ${230-42*Math.cos((j*2+phase)*Math.PI/180)}`).join(' ');
- useEffect(()=>onContext(JSON.stringify({stage:4,topic:'AC voltage represented by a complex phasor',phasor:phase===0?'1':'i',amplitudeVolts:1,phaseDegrees:phase,timeDegrees:time,instantaneousVoltage:value,explanation:'The real horizontal projection of the rotating arrow is voltage. Wave chart uses time horizontally, voltage vertically. Phase 90 peaks a quarter-cycle earlier than phase zero.'})),[phase,time]);
  return <div><div className="root-options"><button className={phase===0?'picked':''} onClick={()=>setPhase(0)}>1 · phase 0°</button><button className={phase===90?'picked':''} onClick={()=>setPhase(90)}>i · phase 90°</button></div><svg className="lesson-diagram" viewBox="0 0 420 310" role="img" aria-label={`Rotating voltage arrow and wave, phase ${phase} degrees, voltage ${value.toFixed(2)} volts`}>
  <circle cx="105" cy="85" r="55" fill="none" stroke="#c6ded9"/><path d="M35 85H175 M105 15V155" stroke="#a3b5bd"/><path d={`M105 85L${x} ${y}`} stroke="#078d85" strokeWidth="3"/><path d={`M${x} ${y}V85`} stroke="#c08628" strokeDasharray="4 4"/><circle cx={x} cy="85" r="5" fill="#c08628"/><text x="190" y="65">Arrow length = 1 V</text><text x="190" y="89">Horizontal part:</text><text x="190" y="113">{value.toFixed(2)} V right now</text><text x="40" y="175">Voltage (V)</text><path d="M35 185V279 M35 230H390" stroke="#a3b5bd"/><text x="15" y="192">1</text><text x="10" y="276">−1</text><path d={path} fill="none" stroke="#078d85" strokeWidth="2"/><circle cx={35+time*350/360} cy={230-42*value} r="5" fill="#c08628"/><text x="35" y="300">Start</text><text x="310" y="300">One cycle → time</text>
  </svg><label>Move through one cycle: {time}°<input aria-label="Wave time" type="range" min="0" max="360" step="5" value={time} onChange={e=>setTime(Number(e.target.value))}/></label></div>
