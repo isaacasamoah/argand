@@ -27,3 +27,5 @@
 @media(min-width:900px) and (max-height:800px){.lesson-shell main{padding-top:12px;padding-bottom:10px}.lesson-shell .lesson-layout{margin:12px 0;grid-template-columns:1.3fr 1fr}.lesson-shell .lesson-card{padding-top:16px;padding-bottom:16px}.lesson-shell .lesson-navigation{padding-top:10px}}
 
 .voice-controls{flex-wrap:wrap}.voice-controls select{font:14px inherit;color:#365b59;background:white;border:1px solid #d3e3df;border-radius:6px;padding:7px;max-width:190px}
+
+.voice-end{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:9px 14px;background:#fff1ed;border:1px solid #dfb3a5;color:#873d2a;border-radius:7px;font-size:14px;font-weight:600}.voice-end:hover:not(:disabled){background:#ffe3db}
