@@ -28,3 +28,7 @@
 .voice-controls{flex-wrap:wrap}
 
 .voice-end{display:grid;place-items:center;width:40px;height:40px;padding:0;background:transparent;border:0}.voice-stop-square{display:block;width:18px;height:18px;border-radius:3px;background:#dfb3a5}.voice-end:hover:not(:disabled) .voice-stop-square{background:#ca9584}
+
+.practice-diagram svg{display:block;width:100%;height:clamp(190px,28vh,260px);font-size:12px;fill:#526b76}.practice-answer{border-top:1px solid #e5edee;padding-top:12px}.practice-answer label{margin:0 0 8px;color:#36535f}.answer-row{display:flex;gap:10px;align-items:stretch}.answer-row input{border:1px solid #bdcfd5;border-radius:7px;background:white;padding:10px 12px;min-width:0;width:100%}.answer-row input::placeholder{color:#70838d}.answer-row input:focus{outline:2px solid #079b93;outline-offset:2px}.answer-row button{white-space:nowrap}.answer-support{display:flex;gap:15px;align-items:center;flex-wrap:wrap;margin-top:10px;color:#607580;font-size:12px}.answer-support span{margin-right:auto}.answer-support .text-link{font-size:12px}.practice-feedback{padding:10px 14px;margin-bottom:12px;border-radius:8px;background:#edf7f3;max-height:120px;overflow:auto}.practice-feedback p{font-size:14px;line-height:1.5;margin:0}.practice-feedback .trace-link{margin-top:5px}@media(max-width:680px){.answer-row{flex-wrap:wrap}.answer-row button{width:100%}}
+
+@media(min-width:900px){.practice-card .equation{padding:0}.practice-card .katex-display{margin:.5em 0}.practice-card .lesson-layout{margin:10px 0}.practice-card .diagram-caption{margin:6px 0}}
