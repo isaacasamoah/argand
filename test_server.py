@@ -47,10 +47,10 @@ def test_voice_server_owns_models_and_context(client,monkeypatch):
    return server.httpx.Response(200,json={'session':{'id':'live_test'},'transport':{'sdp':'answer'}},request=server.httpx.Request('POST',url))
  monkeypatch.setattr(server.httpx,'AsyncClient',FakeClient)
  a=client.post('/api/attempts',json={'problem_id':'roots-8','text':'2'}).json()
- r=client.post('/api/voice/session',headers={'Origin':'http://127.0.0.1:18770'},json={'sdp':'offer','problem_id':'roots-8','parent_id':a['id'],'voice':'ripple'})
+ r=client.post('/api/voice/session',headers={'Origin':'http://127.0.0.1:18770'},json={'sdp':'offer','problem_id':'roots-8','parent_id':a['id']})
  assert r.status_code==200
  assert captured['session']['model']=='gpt-live-1'
- assert captured['session']['audio']['output']['voice']=='ripple'
+ assert captured['session']['audio']['output']['voice']=='willow'
  assert captured['session']['delegation']['responses']['reasoning']['effort']=='medium'
  assert 'incomplete' in captured['session']['input'][0]['content'][0]['text']
  assert 'dummy-test-key' not in r.text
