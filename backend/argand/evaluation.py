@@ -9,8 +9,8 @@ import uuid
 import httpx
 from fastapi import HTTPException
 
-from models import TUTOR_MODEL
-from storage import db, get_attempt
+from .models import TUTOR_MODEL
+from .storage import db, get_attempt
 
 ASSERTIONS = [
     (

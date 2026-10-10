@@ -1,9 +1,6 @@
 import pytest
+from argand import evaluation, server, storage
 from fastapi.testclient import TestClient
-
-import evaluation
-import server
-import storage
 
 
 @pytest.fixture

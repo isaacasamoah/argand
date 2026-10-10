@@ -24,21 +24,21 @@ Use Node.js 22+ and Python 3.11+ (verified locally with Python 3.13). The comman
 
 ```sh
 uv venv .venv
-uv pip install --python .venv/bin/python -r requirements-dev.txt
-npm ci
-npm run build
-.venv/bin/python -m uvicorn server:app --host 127.0.0.1 --port 18770
+uv pip install --python .venv/bin/python -r backend/requirements-dev.txt
+npm --prefix frontend ci
+npm --prefix frontend run build
+.venv/bin/python -m uvicorn argand.server:app --app-dir backend --host 127.0.0.1 --port 18770
 ```
 
-Open **http://127.0.0.1:18770**. FastAPI serves the built frontend and API from one origin. Rebuild after frontend edits, or run `npm run dev` in another terminal to rebuild on changes. Restart the Python server after backend edits.
+Open **http://127.0.0.1:18770**. FastAPI serves the built frontend and API from one origin. Rebuild after frontend edits, or run `npm --prefix frontend run dev` in another terminal to rebuild on changes. Restart the Python server after backend edits.
 
 Supply provider credentials in the server's environment using your secret manager before starting it:
 
-| Variable           | Purpose                                                                |
-| ------------------ | ---------------------------------------------------------------------- |
-| `OPENAI_API_KEY`   | Written feedback, voice sessions and failure annotations               |
-| `TYPESAFE_API_KEY` | Jev assertion judgments                                                |
-| `ARGAND_DB`        | Optional SQLite path; defaults to `attempts.sqlite3` beside the server |
+| Variable           | Purpose                                                                     |
+| ------------------ | --------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`   | Written feedback, voice sessions and failure annotations                    |
+| `TYPESAFE_API_KEY` | Jev assertion judgments                                                     |
+| `ARGAND_DB`        | Optional SQLite path; defaults to `attempts.sqlite3` in the repository root |
 
 Do not put keys in frontend code. Without keys, the lesson, diagrams and exact maths checks still work with explicitly authored feedback; voice and model evaluation are unavailable. Provider calls use the configured accounts and may incur charges. Voice requires microphone permission and access to the configured models.
 
@@ -72,26 +72,25 @@ Keys stay server-side. Evaluations send recorded replies and context to TypeSafe
 ## Code map
 
 ```text
-src/App.tsx                 Lesson/practice flow and shared conversation records
-src/Lesson.tsx              Four-stage interactive lesson
-src/lessonState.ts          Revisioned state and diagram tool operations
-src/PracticeExplorer.tsx    Visual root discovery
-src/RootEntry.tsx           MathLive input and symbol keypad
-src/VoiceTutor.tsx          WebRTC lifecycle, transcript and tool dispatch
-src/EvidencePanel.tsx       Evaluation actions and conversation results
-src/EvidenceResponse.tsx    Expandable response and assertion evidence
-src/EvaluationSummary.tsx   Shared real/example summary layout
-src/evidence.ts             Evaluation types and record merging
-src/api.ts                  Typed local JSON requests
-server.py                   FastAPI routes and tutor/voice orchestration
-math_checks.py              Restricted expression parser and exact root checks
-curriculum.py               Exercise and explicitly authored guidance
-models.py                   Shared reasoning model identifier
-evaluation.py               Assertions, Jev judgments and annotations
-storage.py                  SQLite records
-review_access.py            Optional expiring review invitation gate
-tests/                      Isolated Python unit and API tests
-tests/browser/              Browser verification journeys
+frontend/
+  src/                      React components, diagrams, voice and evaluation UI
+  index.html                Browser entry point
+  package.json              Frontend dependencies and build commands
+  vite.config.ts            Bundling and local maths fonts
+backend/
+  argand/
+    server.py               FastAPI routes and tutor/voice orchestration
+    math_checks.py          Restricted parser and exact SymPy checks
+    curriculum.py           Exercise and explicitly authored guidance
+    models.py               Shared reasoning model identifier
+    evaluation.py           Assertions, Jev judgments and annotations
+    storage.py              SQLite records
+    review_access.py        Optional expiring review invitation gate
+  tests/                    Isolated Python unit and API tests
+  pyproject.toml            Python lint and test configuration
+  requirements*.txt         Runtime and development dependencies
+tests/browser/              Browser journeys covering frontend and backend
+tools/                      Hosting and maintenance helpers
 ```
 
 MathLive fonts are bundled locally. There is no browser-side provider key or external font dependency.
@@ -99,14 +98,14 @@ MathLive fonts are bundled locally. There is no browser-side provider key or ext
 ## Verification and formatting
 
 ```sh
-npm run build
-npm run format:check
-.venv/bin/python -m pytest -q
-.venv/bin/ruff check .
-.venv/bin/ruff format --check .
+npm --prefix frontend run build
+npm --prefix frontend run format:check
+.venv/bin/python -m pytest -c backend/pyproject.toml backend/tests -q
+.venv/bin/ruff check --config backend/pyproject.toml .
+.venv/bin/ruff format --config backend/pyproject.toml --check .
 ```
 
-Use `npm run format` and `.venv/bin/ruff format .` to apply formatting. The TypeScript build rejects unused locals and parameters. Unit tests use isolated temporary databases and provider doubles; they do not call paid services.
+Use `npm --prefix frontend run format` and `.venv/bin/ruff format --config backend/pyproject.toml .` to apply formatting. The TypeScript build rejects unused locals and parameters. Unit tests use isolated temporary databases and provider doubles; they do not call paid services.
 
 For browser verification, install Playwright separately and start the local server:
 

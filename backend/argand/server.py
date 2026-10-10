@@ -12,14 +12,14 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from curriculum import PROBLEMS, hints, solution
-from evaluation import ASSERTIONS, evaluate
-from math_checks import check, expression
-from models import TUTOR_MODEL
-from review_access import ReviewAccess, public_origin
-from storage import db, get_attempt
+from .curriculum import PROBLEMS, hints, solution
+from .evaluation import ASSERTIONS, evaluate
+from .math_checks import check, expression
+from .models import TUTOR_MODEL
+from .review_access import ReviewAccess, public_origin
+from .storage import db, get_attempt
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parents[2]
 app = FastAPI()
 app.add_middleware(ReviewAccess)
 
@@ -605,4 +605,4 @@ def record_voice(req: VoiceEvidence):
 
 app.add_api_route("/api/attempts/{ident}/evaluate", evaluate, methods=["POST"])
 
-app.mount("/", StaticFiles(directory=ROOT / "dist", html=True), name="ui")
+app.mount("/", StaticFiles(directory=ROOT / "frontend" / "dist", html=True), name="ui")

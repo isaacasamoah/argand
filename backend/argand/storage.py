@@ -8,7 +8,11 @@ from pathlib import Path
 
 from fastapi import HTTPException
 
-DB = Path(os.environ.get("ARGAND_DB", Path(__file__).parent / "attempts.sqlite3"))
+DB = Path(
+    os.environ.get(
+        "ARGAND_DB", Path(__file__).resolve().parents[2] / "attempts.sqlite3"
+    )
+)
 
 
 @contextmanager

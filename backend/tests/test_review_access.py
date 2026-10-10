@@ -1,9 +1,8 @@
 import time
 
 import pytest
+from argand import server
 from fastapi.testclient import TestClient
-
-import server
 
 
 @pytest.fixture
