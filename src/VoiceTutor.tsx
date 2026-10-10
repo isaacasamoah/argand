@@ -31,7 +31,7 @@ export function VoiceTutor(props:Props){
       const tasks=pending.get(id)!;pending.delete(id);Promise.all(tasks).then(results=>{if(active.current!==c||channel.readyState!=='open')return;for(const item of results)channel.send(JSON.stringify({type:'response.item.create',item:{type:'function_call_output',...item}}));channel.send(JSON.stringify({type:'response.create'}));});
      }
     }
-    if(e.type==='session.closed'){cleanup();setState('idle');setStatus(e.reason==='close_requested'?'Voice conversation ended.':`Voice disconnected (${e.reason||'reason unavailable'}). Start again to reconnect.`);}
+    if(e.type==='session.closed'){cleanup();setState('idle');setStatus(e.reason==='close_requested'?'':`Voice disconnected (${e.reason||'reason unavailable'}). Start again to reconnect.`);}
     if(e.type==='error'){setStatus(`Voice error: ${e.error?.code||'unknown'}. End voice and retry.`);}
     if((e.type==='session.input_transcript.delta'||e.type==='session.output_transcript.delta')&&typeof e.delta==='string'){const who=e.type.includes('input')?'You':'Tutor';setTranscript(old=>{const next=[...old];if(next.at(-1)?.who===who)next[next.length-1]={who,text:next[next.length-1].text+e.delta};else next.push({who,text:e.delta});return next.slice(-40)});}
    };
