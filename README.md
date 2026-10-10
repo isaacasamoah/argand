@@ -14,6 +14,10 @@ Built as an independent senior-secondary maths prototype. Inspired by the clarit
 
 The practice roots are `2`, `-1+i*sqrt(3)` and `-1-i*sqrt(3)`. Submit them separately. Collecting them verifies the values, not a written proof or a learning outcome.
 
+## Run your own copy
+
+The public source is **bring your own API keys**. Clone it with `git clone https://github.com/isaacasamoah/argand.git`, then `cd argand`. Access to the separately hosted review demo is by private invitation; no invitation or provider credential is included here.
+
 ## Run locally
 
 Use Node.js 22+ and Python 3.11+ (verified locally with Python 3.13). The commands below use [uv](https://docs.astral.sh/uv/).
@@ -85,6 +89,9 @@ curriculum.py               Exercise and explicitly authored guidance
 models.py                   Shared reasoning model identifier
 evaluation.py               Assertions, Jev judgments and annotations
 storage.py                  SQLite records
+review_access.py            Optional expiring review invitation gate
+tests/                      Isolated Python unit and API tests
+tests/browser/              Browser verification journeys
 ```
 
 MathLive fonts are bundled locally. There is no browser-side provider key or external font dependency.
@@ -106,7 +113,7 @@ For browser verification, install Playwright separately and start the local serv
 ```sh
 uv pip install --python .venv/bin/python playwright
 .venv/bin/python -m playwright install chromium
-.venv/bin/python scripts/verify_inline_evidence.py
+.venv/bin/python tests/browser/verify_inline_evidence.py
 ```
 
 The inline-evidence test simulates voice transport, evaluator responses and completed-answer delivery while exercising the real UI and evidence storage. It covers evaluation during voice, snapshot replacement, automatic evaluation, uncertainty display and mobile width. Other scripts (`verify_lesson_tools.py`, `verify_practice_explorer.py`, `verify_root_entry.py`) exercise the local UI and checker; with provider credentials configured, answer submission also makes live tutor calls. They are not offline tests. Screenshots go to the system temporary directory under `argand-evidence`, or `ARGAND_EVIDENCE_DIR` when set.
@@ -116,3 +123,13 @@ The inline-evidence test simulates voice transport, evaluator responses and comp
 One lesson sequence and one practice problem are implemented. There is no handwriting recognition, verified prose-proof assessment, account system, school deployment or measured learning improvement. Evaluation reliability and curriculum suitability need further review. Live provider behaviour depends on account access and model availability; automated browser simulations do not prove microphone/audio quality.
 
 References: [QCAA Specialist Mathematics syllabus](https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_maths_specialist_25_syll.pdf), [TypeSafe Noul](https://docs.typesafe.ai/primitives/noul), [OpenAI GPT-Live](https://developers.openai.com/api/docs/guides/live).
+
+## Optional private review hosting
+
+The same app can run behind an HTTPS reverse proxy such as Tailscale Funnel. Set all three variables in the hosting environment: `ARGAND_PUBLIC_ORIGIN` (exact HTTPS origin), `ARGAND_REVIEW_TOKEN` (a random secret of at least 32 characters), and `ARGAND_REVIEW_EXPIRES` (expiry as Unix seconds). Use a separate `ARGAND_DB` for reviewer records.
+
+The invitation URL carries the token in a fragment, which is removed from the browser address before login. Login sets a Secure, HttpOnly, SameSite cookie. The hosted gate rejects expired invitations, unexpected hosts/origins and requests without access. Possession of an invitation grants access; this is not email identity verification. Keep invitation links out of Git and share them only with intended reviewers. `tools/review_invite.py` lets the hosting owner open or copy an invitation locally after loading these environment variables.
+
+Provider credit and billing limits remain provider-controlled. This app does not implement a monetary spending cap. Disable auto-renewal and configure the hosting accounts accordingly; provider exhaustion is reported by the model APIs. Public clones use the clone owner's accounts.
+
+Normal local runs leave the review variables unset. The invitation gate is then disabled and the server should stay on loopback. The hosted machine must remain online for a Funnel link to work.

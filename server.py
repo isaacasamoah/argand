@@ -16,10 +16,12 @@ from curriculum import PROBLEMS, hints, solution
 from evaluation import ASSERTIONS, evaluate
 from math_checks import check, expression
 from models import TUTOR_MODEL
+from review_access import ReviewAccess, public_origin
 from storage import db, get_attempt
 
 ROOT = Path(__file__).parent
 app = FastAPI()
+app.add_middleware(ReviewAccess)
 
 
 class Attempt(BaseModel):
@@ -39,6 +41,9 @@ def config():
         ],
         "jev_available": bool(os.getenv("TYPESAFE_API_KEY")),
         "jev_model": "jev-1.13.0",
+        "review_expires": int(os.getenv("ARGAND_REVIEW_EXPIRES", "0"))
+        if public_origin()
+        else None,
         "openai_mode": "live" if os.getenv("OPENAI_API_KEY") else "unavailable",
         "tutor_mode": "openai" if os.getenv("OPENAI_API_KEY") else "authored",
         "tutor_available": bool(os.getenv("OPENAI_API_KEY")),
@@ -98,6 +103,7 @@ async def voice_session(req: VoiceOffer, request: Request):
     if request.headers.get("origin") not in (
         "http://127.0.0.1:18770",
         "http://localhost:18770",
+        public_origin(),
     ):
         raise HTTPException(403, "Unexpected request origin")
     p = next((p for p in PROBLEMS if p["id"] == req.problem_id), None)

@@ -28,6 +28,7 @@ type Problem = {
   level: string;
 };
 type Config = {
+  review_expires?: number | null;
   problems: Problem[];
   assertions: Assertion[];
   jev_available: boolean;
@@ -312,6 +313,7 @@ export function App() {
           )}
           {p && (
             <VoiceTutor
+              expires={config?.review_expires}
               ref={voice}
               onEvidence={(items) =>
                 setRecords((previous) => mergeRecords(previous, items))

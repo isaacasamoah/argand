@@ -9,6 +9,7 @@ import {
 } from "react";
 import { AudioLines } from "lucide-react";
 type Props = {
+  expires?: number | null;
   available: boolean;
   problemId: string;
   lesson: boolean;
@@ -116,6 +117,14 @@ export const VoiceTutor = forwardRef<VoiceHandle, Props>(
       },
       [],
     );
+    useEffect(() => {
+      if (state !== "live" || !props.expires) return;
+      const timer = setTimeout(
+        () => stop(),
+        Math.max(0, props.expires * 1000 - Date.now()),
+      );
+      return () => clearTimeout(timer);
+    }, [state, props.expires]);
     async function start() {
       if (evidence.current.length) {
         try {
