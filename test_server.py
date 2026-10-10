@@ -28,3 +28,45 @@ def test_mock_does_not_invent_unknown_diagnosis(client):
  a=client.post('/api/attempts',json={'problem_id':'roots-8','text':'99'}).json()
  r=client.post('/api/attempts/'+a['id']+'/investigate').json()
  assert r['classification']=='insufficient_evidence'
+
+def test_chat_and_voice_without_key(client,monkeypatch):
+ monkeypatch.delenv('OPENAI_API_KEY',raising=False)
+ assert client.post('/api/attempts',json={'problem_id':'roots-8','action':'chat','text':'Why?'}).status_code==503
+ assert client.post('/api/voice/session',headers={'Origin':'http://127.0.0.1:18770'},json={'sdp':'offer','problem_id':'roots-8'}).status_code==503
+ assert client.post('/api/voice/session',headers={'Origin':'https://example.com'},json={'sdp':'offer','problem_id':'roots-8'}).status_code==403
+
+def test_voice_server_owns_models_and_context(client,monkeypatch):
+ monkeypatch.setenv('OPENAI_API_KEY','dummy-test-key')
+ captured={}
+ class FakeClient:
+  def __init__(self,**kwargs):pass
+  async def __aenter__(self):return self
+  async def __aexit__(self,*args):pass
+  async def post(self,url,**kwargs):
+   captured.update(kwargs['json'])
+   return server.httpx.Response(200,json={'session':{'id':'live_test'},'transport':{'sdp':'answer'}},request=server.httpx.Request('POST',url))
+ monkeypatch.setattr(server.httpx,'AsyncClient',FakeClient)
+ a=client.post('/api/attempts',json={'problem_id':'roots-8','text':'2'}).json()
+ r=client.post('/api/voice/session',headers={'Origin':'http://127.0.0.1:18770'},json={'sdp':'offer','problem_id':'roots-8','parent_id':a['id']})
+ assert r.status_code==200
+ assert captured['session']['model']=='gpt-live-1'
+ assert captured['session']['delegation']['responses']['reasoning']['effort']=='medium'
+ assert 'incomplete' in captured['session']['input'][0]['content'][0]['text']
+ assert 'dummy-test-key' not in r.text
+ assert client.post('/api/voice/session',headers={'Origin':'http://127.0.0.1:18770'},json={'sdp':'offer','problem_id':'roots-unity','parent_id':a['id']}).status_code==400
+
+def test_chat_preserves_checker_history(client,monkeypatch):
+ monkeypatch.setenv('OPENAI_API_KEY','dummy-test-key')
+ class FakeClient:
+  def __init__(self,**kwargs):pass
+  async def __aenter__(self):return self
+  async def __aexit__(self,*args):pass
+  async def post(self,url,**kwargs):
+   assert 'incomplete' in kwargs['json']['input']
+   assert kwargs['json']['store'] is False
+   return server.httpx.Response(200,json={'output':[{'type':'message','content':[{'type':'output_text','text':'What other angles could work?'}]}]},request=server.httpx.Request('POST',url))
+ monkeypatch.setattr(server.httpx,'AsyncClient',FakeClient)
+ a=client.post('/api/attempts',json={'problem_id':'roots-8','text':'2'}).json()
+ r=client.post('/api/attempts',json={'problem_id':'roots-8','action':'chat','text':'What next?','parent_id':a['id']})
+ assert r.status_code==200 and r.json()['checker']['status']=='not_checked'
+ assert r.json()['history'][0]['checker']['status']=='incomplete'
