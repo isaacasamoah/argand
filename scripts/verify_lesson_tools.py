@@ -17,6 +17,14 @@ with sync_playwright() as p:
  stale=call('update_diagram',{'revision':state['revision'],'real':2},'stale');assert stale['status']=='stale_state'
  page.get_by_role('button',name='Next',exact=True).click();state=call('read_lesson_state',{},'read2');assert state['stage']==2
  assert call('update_diagram',{'revision':state['revision'],'real':2},'invalid')['status']=='invalid_control'
+ r=call('update_diagram',{'revision':state['revision'],'modulus':2,'angle':90},'polar');assert r['state']['diagram']['point']==[0,2]
+ assert page.get_by_label('Modulus',exact=True).input_value()=='2'
+ assert page.get_by_label('Angle',exact=True).input_value()=='90'
+ assert page.locator('.lesson-diagram').get_attribute('aria-label')=='Complex plane: real 0, imaginary 2'
+ assert call('update_diagram',{'revision':r['state']['revision'],'angle':365},'badangle')['status']=='out_of_range'
+ page.get_by_label('Angle',exact=True).fill('180');state=call('read_lesson_state',{},'slider');assert state['diagram']['point']==[-2,0]
+ r=call('update_diagram',{'revision':state['revision'],'modulus':0},'origin');assert r['state']['diagram']['point']==[0,0]
+ assert page.get_by_text('At the origin, the argument is undefined.').is_visible()
  page.get_by_role('button',name='Next',exact=True).click();state=call('read_lesson_state',{},'read3');assert call('update_diagram',{'revision':state['revision'],'root':1,'squared':True},'root')['state']['diagram']['point']==[0,2]
  page.get_by_role('button',name='Next',exact=True).click();state=call('read_lesson_state',{},'read4');assert call('update_diagram',{'revision':state['revision'],'phase':90,'time':180},'wave')['status']=='applied'
  assert page.get_by_label('Wave time',exact=True).input_value()=='180'
