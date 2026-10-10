@@ -227,13 +227,13 @@ async def evaluate(ident:str):
    if i in questions:
     probability=answers[i]['noul']
     if type(probability) not in (int,float) or not 0<=probability<=1:raise ValueError('Invalid probability')
-    row.update(state='pass' if probability>=.5 else 'fail',probability=probability)
+    row.update(state='uncertain' if .35<=probability<=.65 else ('pass' if probability>.65 else 'fail'),probability=probability)
    rows.append(row)
  except (httpx.HTTPError,ValueError,KeyError,TypeError):raise HTTPException(502,'Jev evaluation failed. No assertions have been marked as passed.')
  reviewed=[row for row in rows if row['state']=='fail' or (row['probability'] is not None and .35<=row['probability']<=.65)]
  annotations=await asyncio.gather(*(explain_failure(a,row) for row in reviewed))
  for row,annotation in zip(reviewed,annotations):row['annotation']=annotation
- result={'id':str(uuid.uuid4()),'attempt':ident,'source':'live Jev','model':'jev-1.13.0','rows':rows,'seconds':round(time.monotonic()-started,2),'threshold':.5,'calibrated':False}
+ result={'id':str(uuid.uuid4()),'attempt':ident,'source':'live Jev','model':'jev-1.13.0','rows':rows,'seconds':round(time.monotonic()-started,2),'uncertain_range':[.35,.65],'calibrated':False}
  with db() as c:c.execute('INSERT INTO evaluations VALUES (?,?,?)',(result['id'],ident,json.dumps(result)))
  return result
 
@@ -266,9 +266,9 @@ def record_voice(req:VoiceEvidence):
   mode=context.get('mode','lesson')
   checks=[t['checker'] for t in g['tools'] if t.get('example')==mode and 'checker' in t]
   if checks:checker=checks[-1]
-  ident=str(uuid.uuid5(uuid.NAMESPACE_URL,req.session_id+':'+str(index)+':'+g['text']))
   evidence={'S1':g['student'],'C1':json.dumps(checker),'T1':g['text'],'U1':json.dumps(context),'K1':json.dumps(g['tools']),'V1':json.dumps(req.events[:g['end']+1])}
-  row={'id':ident,'problem':PROBLEMS[0],'student':g['student'],'tutor':g['text'],'action':'voice','mode':context.get('mode','lesson'),'checker':checker,'collected_roots':context.get('collectedRoots',[]),'tutor_source':'GPT-Live transcript excerpt','versions':{'tutor':'gpt-live-1','reasoning':TUTOR_MODEL,'assertions':'2'},'evidence':evidence,'created':time.time()}
+  ident=str(uuid.uuid5(uuid.NAMESPACE_URL,req.session_id+':'+str(index)+':'+json.dumps(evidence,sort_keys=True)))
+  row={'id':ident,'record_key':req.session_id+':'+str(index),'problem':PROBLEMS[0],'student':g['student'],'tutor':g['text'],'action':'voice','mode':context.get('mode','lesson'),'checker':checker,'collected_roots':context.get('collectedRoots',[]),'tutor_source':'GPT-Live transcript excerpt','versions':{'tutor':'gpt-live-1','reasoning':TUTOR_MODEL,'assertions':'2'},'evidence':evidence,'created':time.time()}
   with db() as c:c.execute('INSERT OR IGNORE INTO attempts VALUES (?,?)',(ident,json.dumps(row)))
   records.append(row)
  return records

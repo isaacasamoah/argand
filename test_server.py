@@ -192,3 +192,25 @@ def test_investigator_rejects_invented_quotes(client,monkeypatch):
   async def post(self,url,**kwargs):return server.httpx.Response(200,json={'output':[{'content':[{'type':'output_text','text':server.json.dumps({'classification':'supported_failure','statement':'Invented claim','citations':[{'id':'T1','quote':'This was never said.'}]})}]}]},request=server.httpx.Request('POST',url))
  monkeypatch.setattr(server.httpx,'AsyncClient',FakeClient)
  result=asyncio.run(server.explain_failure(a,{'id':'A01'}));assert 'error' in result and 'statement' not in result
+
+@pytest.mark.parametrize('probability,expected',[(.34,'fail'),(.35,'uncertain'),(.5,'uncertain'),(.65,'uncertain'),(.66,'pass')])
+def test_probability_boundaries(client,monkeypatch,probability,expected):
+ a=client.post('/api/attempts',json={'problem_id':'roots-8','text':'2'}).json();monkeypatch.setenv('TYPESAFE_API_KEY','dummy')
+ class FakeClient:
+  def __init__(self,**kwargs):pass
+  async def __aenter__(self):return self
+  async def __aexit__(self,*args):pass
+  async def post(self,url,**kwargs):return server.httpx.Response(200,json={'answers':{i:{'noul':probability} for i in kwargs['json']['questions']}},request=server.httpx.Request('POST',url))
+ monkeypatch.setattr(server.httpx,'AsyncClient',FakeClient)
+ r=client.post('/api/attempts/'+a['id']+'/evaluate').json()
+ row=next(x for x in r['rows'] if x['id']=='A01');assert row['state']==expected
+ assert ('annotation' in row)==(expected!='pass')
+
+def test_voice_snapshot_versions_preserve_previous_evidence(client):
+ events=[{'who':'Tutor','text':'The horizontal axis','context':{'mode':'lesson'}}]
+ first=client.post('/api/voice/evidence',json={'session_id':'snapshots','events':events}).json()[0]
+ events.append({'who':'Tutor','text':' is the real part.','context':{'mode':'lesson'}})
+ second=client.post('/api/voice/evidence',json={'session_id':'snapshots','events':events}).json()[0]
+ assert first['record_key']==second['record_key'] and first['id']!=second['id']
+ assert server.get_attempt(first['id'])['tutor']=='The horizontal axis'
+ assert server.get_attempt(second['id'])['tutor']=='The horizontal axis is the real part.'
