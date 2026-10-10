@@ -25,3 +25,5 @@
 
 .voice-tutor{margin-top:12px}.voice-controls{display:flex;align-items:center;gap:12px;min-height:42px}.voice-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;color:#087f78;border:1px solid #c9dfdb;background:#fff}.voice-icon:hover{background:#e5f4ef}.voice-controls>span{font-size:13px;color:#526b76}.voice-controls audio{height:32px;width:220px;margin-left:auto}.voice-conversation{margin-top:8px;background:white;border:1px solid #dce7e9;border-radius:10px;padding:12px 16px;max-height:160px;overflow:auto;font-size:15px;line-height:1.6}.voice-conversation p{margin:4px 0 10px}.voice-you{color:#087f78}.voice-conversation small{font-size:11px;color:#607580}
 @media(min-width:900px) and (max-height:800px){.lesson-shell main{padding-top:12px;padding-bottom:10px}.lesson-shell .lesson-layout{margin:12px 0;grid-template-columns:1.3fr 1fr}.lesson-shell .lesson-card{padding-top:16px;padding-bottom:16px}.lesson-shell .lesson-navigation{padding-top:10px}}
+
+.voice-controls{flex-wrap:wrap}.voice-controls select{font:14px inherit;color:#365b59;background:white;border:1px solid #d3e3df;border-radius:6px;padding:7px;max-width:190px}
