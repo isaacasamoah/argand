@@ -95,3 +95,37 @@ def test_visual_candidate_bounds_and_duplicates(client):
  a=client.post('/api/practice/cube',json={'modulus':2,'angle':0}).json()
  b=client.post('/api/practice/cube',json={'modulus':2,'angle':360}).json()
  assert a['exact']==b['exact']
+
+@pytest.mark.parametrize('text,status',[('2','incomplete'),('2,8','incorrect'),('2,-1+i*sqrt(3),-1-i*sqrt(3)','complete'),('hello','not_checked')])
+def test_model_feedback_receives_exact_checker(client,monkeypatch,text,status):
+ monkeypatch.setenv('OPENAI_API_KEY','dummy-test-key')
+ class FakeClient:
+  def __init__(self,**kwargs):pass
+  async def __aenter__(self):return self
+  async def __aexit__(self,*args):pass
+  async def post(self,url,**kwargs):
+   state=server.json.loads(kwargs['json']['input'])
+   assert state['checker']['status']==status and state['question']==text
+   assert 'do not name missing roots' in kwargs['json']['instructions']
+   return server.httpx.Response(200,json={'output':[{'type':'message','content':[{'type':'output_text','text':'Feedback grounded in the supplied result.'}]}]},request=server.httpx.Request('POST',url))
+ monkeypatch.setattr(server.httpx,'AsyncClient',FakeClient)
+ response=client.post('/api/attempts',json={'problem_id':'roots-8','text':text})
+ assert response.status_code==200
+ row=response.json();assert row['checker']['status']==status
+ assert row['tutor_source'].startswith('OpenAI tutor')
+ assert row['evidence']['T1']==row['tutor']
+ assert server.json.loads(row['evidence']['C1'])==row['checker']
+
+def test_model_feedback_failure_preserves_checked_attempt(client,monkeypatch):
+ monkeypatch.setenv('OPENAI_API_KEY','dummy-test-key')
+ class BrokenClient:
+  def __init__(self,**kwargs):pass
+  async def __aenter__(self):return self
+  async def __aexit__(self,*args):pass
+  async def post(self,*args,**kwargs):raise server.httpx.ConnectError('offline')
+ monkeypatch.setattr(server.httpx,'AsyncClient',BrokenClient)
+ response=client.post('/api/attempts',json={'problem_id':'roots-8','text':'2'})
+ assert response.status_code==200
+ row=response.json();assert row['checker']['status']=='incomplete'
+ assert row['tutor_source']=='SymPy result · model feedback unavailable'
+ assert server.get_attempt(row['id'])['checker']==row['checker']

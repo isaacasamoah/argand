@@ -10,13 +10,13 @@ with sync_playwright() as p:
   page.get_by_label('Candidate modulus').fill('2')
   for i,angle in enumerate([0,120,240],1):
    page.get_by_label('Candidate angle').fill(str(angle));page.get_by_text(f'{i} / 3 found:',exact=False).wait_for()
-  page.get_by_text('Every root you submitted checks out',exact=False).wait_for()
+  page.locator('.practice-feedback').wait_for()
   page.get_by_label('Candidate angle').fill('360');page.wait_for_timeout(500);assert '3 / 3 found:' in page.locator('.collected-roots').inner_text()
   if width>=900:assert page.evaluate('document.documentElement.scrollHeight<=innerHeight'),page.evaluate('document.documentElement.scrollHeight')
   assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
   page.screenshot(path=f'/home/isaac/vault/argand/prototype/evidence/practice-explorer-{width}.png')
   page.get_by_role('button',name='Reset',exact=True).click();assert page.get_by_label('Candidate modulus').input_value()=='1';assert page.locator('.collected-roots').count()==0
-  page.locator('#step').fill('2');page.get_by_role('button',name='Check answer').click();page.get_by_text('These roots work.',exact=False).wait_for()
+  page.locator('#step').fill('2');page.get_by_role('button',name='Check answer').click();page.locator('.practice-feedback').wait_for()
   print('PASS',width,height,'incorrect, three roots, duplicate, reset and typed entry',flush=True);page.close()
  # A late exact result must not collect a point the learner has already moved away from.
  page=browser.new_page();held=[]
