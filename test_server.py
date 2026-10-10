@@ -70,3 +70,11 @@ def test_chat_preserves_checker_history(client,monkeypatch):
  r=client.post('/api/attempts',json={'problem_id':'roots-8','action':'chat','text':'What next?','parent_id':a['id']})
  assert r.status_code==200 and r.json()['checker']['status']=='not_checked'
  assert r.json()['history'][0]['checker']['status']=='incomplete'
+
+def test_voice_checker_lesson_and_practice(client):
+ r=client.post('/api/voice/check',json={'example':'lesson','roots':'1+i,-1-i'}).json()
+ assert r['checker']['status']=='complete'
+ assert client.post('/api/voice/check',json={'example':'lesson','roots':'1-i'}).json()['checker']['status']=='incorrect'
+ assert client.post('/api/voice/check',json={'example':'practice','roots':'2'}).json()['checker']['status']=='incomplete'
+ assert client.post('/api/voice/check',json={'example':'lesson','roots':'__import__("os")'}).json()['checker']['status']=='not_checked'
+ assert client.post('/api/voice/check',json={'example':'other','roots':'2'}).status_code==400
