@@ -39,6 +39,11 @@ with sync_playwright() as p:
  assert pair[0]['exploration']['controls']=={'modulus':2,'angle':120}
  assert pair[0]['exploration']['checker']['matches'] is True
  assert pair[0]['exploration']['cubed']==[8,0]
+ page.get_by_text('My working',exact=True).click();page.get_by_label('Notes to discuss with Argand · not checked').fill('Why are the angles equally spaced?')
+ state=call('read_lesson_state',{},'notes')
+ assert state['working']=={'text':'Why are the angles equally spaced?','status':'not checked'}
+ assert len(state['collectedRoots'])==1
+
 
  print('PASS: tools visibly change coordinates, roots and wave; reject stale/wrong-stage edits; detect navigation and practice; identical state sent to both models.')
  page.evaluate("emit({type:'session.closed',reason:'close_requested'})");b.close()

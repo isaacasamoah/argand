@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 import server
 @pytest.fixture
 def client(tmp_path,monkeypatch):
- monkeypatch.setattr(server,'DB',tmp_path/'test.sqlite3');monkeypatch.delenv('TYPESAFE_API_KEY',raising=False)
+ monkeypatch.setattr(server,'DB',tmp_path/'test.sqlite3');monkeypatch.delenv('TYPESAFE_API_KEY',raising=False);monkeypatch.delenv('OPENAI_API_KEY',raising=False)
  return TestClient(server.app)
 @pytest.mark.parametrize('text,status',[('2','incomplete'),('2, 2, 2','incomplete'),('2, -1+i*sqrt(3), -1-i*sqrt(3)','complete'),('2, -1+sqrt(3)*i, -1-sqrt(3)*i','complete'),('8','incorrect'),('__import__("os").system("id")','not_checked'),('2**999999','not_checked'),('1/0','not_checked'),('2.0','not_checked'),('I think the answer is two','not_checked')])
 def test_exact_root_checker(text,status):assert server.check(server.PROBLEMS[0],text)['status']==status
@@ -129,3 +129,20 @@ def test_model_feedback_failure_preserves_checked_attempt(client,monkeypatch):
  row=response.json();assert row['checker']['status']=='incomplete'
  assert row['tutor_source']=='SymPy result · model feedback unavailable'
  assert server.get_attempt(row['id'])['checker']==row['checker']
+
+
+def test_single_roots_accumulate_without_losing_verified_work(client):
+ parent=None
+ for text,expected,status in [('2',1,'incomplete'),('2',1,'incomplete'),('8',1,'incorrect'),('hello',1,'not_checked'),('-1+sqrt(3)i',2,'incomplete'),('-1-i*sqrt(3)',3,'complete')]:
+  response=client.post('/api/attempts',json={'problem_id':'roots-8','action':'collect','text':text,'parent_id':parent})
+  assert response.status_code==200
+  row=response.json();assert len(row['collected_roots'])==expected;assert len(row['collection_points'])==expected;assert row['checker']['status']==status
+  parent=row['id']
+ hint=client.post('/api/attempts',json={'problem_id':'roots-8','action':'hint','parent_id':parent}).json()
+ assert hint['collected_roots']==row['collected_roots']
+ assert client.post('/api/attempts',json={'problem_id':'roots-8','action':'collect','text':'2,8','parent_id':parent}).status_code==400
+ assert client.post('/api/attempts',json={'problem_id':'roots-8','action':'collect','text':'2'}).json()['collected_roots']==['2']
+
+@pytest.mark.parametrize('value',['(1)/(2)','i^2','i(1+1)','sqrt(3)i','(1+i)(1-i)'])
+def test_math_editor_notation_is_supported(value):
+ assert server.check(server.PROBLEMS[0],value)['status']!='not_checked'

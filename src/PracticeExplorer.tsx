@@ -1,9 +1,9 @@
 import {useEffect,useRef,useState, type ReactNode} from 'react';
 import {polarPoint} from './lessonState';
 type Result={matches:boolean,exact:string|null,point:number[],cubed:number[]};
-export function PracticeExplorer({children,onAdd,onState,busy,points}:{children:ReactNode,onAdd:(text:string)=>Promise<boolean>,onState:(state:unknown)=>void,busy:boolean,points:number[][]}){
- const [modulus,setModulus]=useState(1),[angle,setAngle]=useState(45),[result,setResult]=useState<Result|null>(null),[error,setError]=useState(''),[roots,setRoots]=useState<string[]>([]);
- const rootsRef=useRef<string[]>([]),addRef=useRef(onAdd);addRef.current=onAdd;
+export function PracticeExplorer({children,onAdd,onState,busy,roots,points}:{children:ReactNode,onAdd:(text:string)=>Promise<boolean>,onState:(state:unknown)=>void,busy:boolean,roots:string[],points:number[][]}){
+ const [modulus,setModulus]=useState(1),[angle,setAngle]=useState(45),[result,setResult]=useState<Result|null>(null),[error,setError]=useState('');
+ const rootsRef=useRef(roots),addRef=useRef(onAdd);addRef.current=onAdd;rootsRef.current=roots;
  const candidate=polarPoint(modulus,angle),cubed=polarPoint(modulus**3,angle*3),cubeExtent=Math.max(10,Math.ceil(modulus**3/10)*10);
  useEffect(()=>{onState({controls:{modulus,angle},candidate,cubed,axes:{candidateExtent:3,cubedExtent:cubeExtent},checker:result?{source:'SymPy exact checker',matches:result.matches}:null,collectedRoots:roots})},[modulus,angle,result,roots]);
  useEffect(()=>{
@@ -13,8 +13,7 @@ export function PracticeExplorer({children,onAdd,onState,busy,points}:{children:
    if(!response.ok)throw new Error('Could not verify this point. Move a slider to retry.');
    const checked:Result=await response.json();if(controller.signal.aborted)return;setResult(checked);
    if(checked.matches&&checked.exact&&!rootsRef.current.includes(checked.exact)){
-    const next=[...rootsRef.current,checked.exact];
-    if(await addRef.current(next.join(', '))){rootsRef.current=next;setRoots(next)}
+    await addRef.current(checked.exact);
    }
   }catch(e){if(!controller.signal.aborted)setError((e as Error).message)}},200);
   return()=>{clearTimeout(timer);controller.abort()};

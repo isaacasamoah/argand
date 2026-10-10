@@ -16,7 +16,7 @@ with sync_playwright() as p:
   assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
   page.screenshot(path=f'/home/isaac/vault/argand/prototype/evidence/practice-explorer-{width}.png')
   page.get_by_role('button',name='Reset',exact=True).click();assert page.get_by_label('Candidate modulus').input_value()=='1';assert page.locator('.collected-roots').count()==0
-  page.locator('#step').fill('2');page.get_by_role('button',name='Check answer').click();page.locator('.practice-feedback').wait_for()
+  page.locator('math-field').click();page.keyboard.type('2');page.get_by_role('button',name='Check this root').click();page.locator('.practice-feedback').wait_for()
   print('PASS',width,height,'incorrect, three roots, duplicate, reset and typed entry',flush=True);page.close()
  # A late exact result must not collect a point the learner has already moved away from.
  page=browser.new_page();held=[]
