@@ -78,6 +78,18 @@ def voice_check(req:VoiceCheck):
  problem={'n':2,'value':2*sp.I} if req.example=='lesson' else PROBLEMS[0]
  return {'source':'SymPy exact checker','example':req.example,'submitted':req.roots,'checker':check(problem,req.roots),'limit':'Checks these roots only; not a proof or a recorded practice submission.'}
 
+class PolarCandidate(BaseModel):
+ modulus:float=Field(ge=0,le=3)
+ angle:int=Field(ge=0,le=360)
+
+@app.post('/api/practice/cube')
+def cube_candidate(req:PolarCandidate):
+ if abs(req.modulus*10-round(req.modulus*10))>1e-9 or req.angle%5:raise HTTPException(400,'Use the slider increments')
+ r=sp.Rational(str(req.modulus));theta=sp.pi*req.angle/180
+ z=sp.simplify(r*(sp.cos(theta)+sp.I*sp.sin(theta)))
+ cubed=sp.simplify(sp.expand_complex(z**3));matches=sp.simplify(cubed-8)==0
+ return {'matches':bool(matches),'exact':str(z).replace('I','i') if matches else None,'point':[float(sp.re(z)),float(sp.im(z))],'cubed':[float(sp.re(cubed)),float(sp.im(cubed))]}
+
 class VoiceOffer(BaseModel):
  sdp:str=Field(min_length=1,max_length=64000)
  problem_id:str

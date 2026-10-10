@@ -79,3 +79,19 @@ def test_voice_checker_lesson_and_practice(client):
  assert client.post('/api/voice/check',json={'example':'practice','roots':'2'}).json()['checker']['status']=='incomplete'
  assert client.post('/api/voice/check',json={'example':'lesson','roots':'__import__("os")'}).json()['checker']['status']=='not_checked'
  assert client.post('/api/voice/check',json={'example':'other','roots':'2'}).status_code==400
+
+@pytest.mark.parametrize('radius,angle,matches',[(2,0,True),(2,120,True),(2,240,True),(2,360,True),(1.9,120,False),(2,115,False),(0,0,False),(3,45,False)])
+def test_visual_candidate_checked_exactly(client,radius,angle,matches):
+ result=client.post('/api/practice/cube',json={'modulus':radius,'angle':angle}).json()
+ assert result['matches'] is matches
+ if matches:
+  assert server.check(server.PROBLEMS[0],result['exact'])['status']=='incomplete'
+  assert result['cubed']==[8,0]
+ else:assert result['exact'] is None
+
+def test_visual_candidate_bounds_and_duplicates(client):
+ for radius,angle in [(3.1,0),(2,361),(2,121),(1.99,120)]:
+  assert client.post('/api/practice/cube',json={'modulus':radius,'angle':angle}).status_code>=400
+ a=client.post('/api/practice/cube',json={'modulus':2,'angle':0}).json()
+ b=client.post('/api/practice/cube',json={'modulus':2,'angle':360}).json()
+ assert a['exact']==b['exact']

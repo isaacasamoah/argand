@@ -51,3 +51,8 @@ The lesson controls and diagrams use one revisioned state in `src/lessonState.ts
 `read_lesson_state` returns the current slide, explanation, controls and graph values (or current practice). `update_diagram` operates the same controls as the learner: coordinates, modulus/angle, root selection/squaring, wave phase and time. It requires the current revision; stale edits and controls not present on the current slide are rejected. Navigation remains learner-controlled. Tool results publish the resulting state to both models before reasoning continues.
 
 With the local server running and Python Playwright installed, run `python scripts/verify_lesson_tools.py`. It uses a simulated voice transport to exercise tool messages through the real UI, including stale edits, all interactive slides, practice transitions and equality of the state sent to both models. It makes no OpenAI call.
+
+## Visual practice
+Practice has modulus (0–3) and angle (0–360°, step 5°) sliders. Cube this point compares the candidate with the target on a second, separately labelled scale. The server computes the exact polar value with SymPy; Add this root becomes available only for an exact match. Added roots use the same recorded-attempt flow as typed roots. Equivalent 0°/360° candidates are deduplicated. No undiscovered roots or snapping guides are shown. The voice and reasoning models share the current candidate, cubed result and verification state; practice controls remain learner-operated.
+
+Run `python scripts/verify_practice_explorer.py` against the local preview to check incorrect candidates, discovery of all roots, duplicates, reset, typed entry and laptop/mobile layout. These checks use the actual UI and local SymPy endpoint, without model calls.

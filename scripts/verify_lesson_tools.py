@@ -32,5 +32,13 @@ with sync_playwright() as p:
  pair=page.evaluate('''()=>{const a=sent.filter(e=>e.type==='session.thinking.append').at(-1).content;const b=sent.filter(e=>e.type==='response.item.create'&&e.item.role==='developer').at(-1).item.content[0].text;return [JSON.parse(a),JSON.parse(b.slice(b.indexOf('{')))]}''');assert pair[0]==pair[1]
  page.get_by_role('button',name='Try it yourself').click();state=call('read_lesson_state',{},'practice');assert state['mode']=='practice'
  assert call('update_diagram',{'revision':0,'real':0},'denied')['status']=='not_in_lesson'
+ page.get_by_label('Candidate modulus').fill('2');page.get_by_label('Candidate angle').fill('120');page.get_by_role('button',name='Cube this point').click();page.get_by_text('Matches the target.',exact=False).wait_for()
+ page.wait_for_timeout(300)
+ pair=page.evaluate("""()=>{const a=sent.filter(e=>e.type==='session.thinking.append').at(-1).content;const b=sent.filter(e=>e.type==='response.item.create'&&e.item.role==='developer').at(-1).item.content[0].text;return [JSON.parse(a),JSON.parse(b.slice(b.indexOf('{')))]}""")
+ assert pair[0]==pair[1]
+ assert pair[0]['exploration']['controls']=={'modulus':2,'angle':120}
+ assert pair[0]['exploration']['checker']['matches'] is True
+ assert pair[0]['exploration']['cubed']==[8,0]
+
  print('PASS: tools visibly change coordinates, roots and wave; reject stale/wrong-stage edits; detect navigation and practice; identical state sent to both models.')
  page.evaluate("emit({type:'session.closed',reason:'close_requested'})");b.close()
