@@ -1,62 +1,118 @@
 # Argand
 
-An independent senior-maths tutoring prototype, inspired by the clarity of Mathspace's learning interface. It uses its own name, icon and original questions, with no Mathspace logo or affiliation.
+A small, working demo of a voice-enabled maths tutor with inspectable evaluations. Explore complex numbers on an interactive diagram, solve a related problem, and inspect how the tutor's replies were checked.
+
+Built as an independent senior-secondary maths prototype. Inspired by the clarity of Mathspace's learning interface; no Mathspace logo or affiliation.
+
+## Try the demo
+
+1. Work through the four lesson stages: Cartesian coordinates, modulus and argument, square roots of `2i`, and an AC voltage example.
+2. Select **Your practice** to find the cube roots of `8`. Explore with modulus/angle sliders or enter one root at a time with the maths keypad. Exact matches are collected automatically; the lesson does not reveal the practice answers.
+3. Select **Chat to Argand** to discuss the current diagram. The tutor can adjust lesson controls, read the current state and call the maths checker. A small red square ends voice; the transcript is expandable.
+4. Press **Evaluate** at any time, including during voice. Evaluation also runs when the final correct root is collected. Overall assertion counts appear above expandable reply-by-reply results.
+5. Open **Show a deliberate failure** to compare an intentionally incorrect reply against the same checks. Its summary and evidence are separate from your conversation results.
+
+The practice roots are `2`, `-1+i*sqrt(3)` and `-1-i*sqrt(3)`. Submit them separately. Collecting them verifies the values, not a written proof or a learning outcome.
 
 ## Run locally
 
+Use Node.js 22+ and Python 3.11+ (verified locally with Python 3.13). The commands below use [uv](https://docs.astral.sh/uv/).
+
 ```sh
 uv venv .venv
-uv pip install --python .venv/bin/python -r requirements.txt
+uv pip install --python .venv/bin/python -r requirements-dev.txt
 npm ci
 npm run build
-.venv/bin/uvicorn server:app --host 127.0.0.1 --port 18770
+.venv/bin/python -m uvicorn server:app --host 127.0.0.1 --port 18770
 ```
 
-Open http://127.0.0.1:18770. The server serves the built React app and API on the same origin. Rebuild the frontend after editing it. SQLite attempt records are local and gitignored.
+Open **http://127.0.0.1:18770**. FastAPI serves the built frontend and API from one origin. Rebuild after frontend edits, or run `npm run dev` in another terminal to rebuild on changes. Restart the Python server after backend edits.
 
-## Try it
+Supply provider credentials in the server's environment using your secret manager before starting it:
 
-1. Explore the four-stage lesson: coordinates of 1 + i, its distance and angle, and squaring both roots of 2i, and a rotating-arrow example of AC voltage. Then select Try it yourself.
-2. Submit `2` for `z³ = 8`. It is a valid but incomplete root set.
-3. Submit `-1+i*sqrt(3)` and `-1-i*sqrt(3)` one at a time. The root set is checked, but prose reasoning is not certified.
-4. Ask for hints or explicitly reveal the worked solution. The UI labels authored guidance honestly.
-5. Press Evaluate below Chat to Argand at any time, including during voice. Evaluation also runs automatically when the final correct root is collected. Overall assertion counts precede expandable turn-by-turn results and a short model explanation; the deliberate failure example remains separate. The response incorrectly calls a partial set complete. The report quotes the immutable student, checker and tutor evidence.
+| Variable           | Purpose                                                                |
+| ------------------ | ---------------------------------------------------------------------- |
+| `OPENAI_API_KEY`   | Written feedback, voice sessions and failure annotations               |
+| `TYPESAFE_API_KEY` | Jev assertion judgments                                                |
+| `ARGAND_DB`        | Optional SQLite path; defaults to `attempts.sqlite3` beside the server |
 
-One practice exercise is implemented: cube roots of 8. The lesson uses square roots of 2i, so it does not disclose the practice answers. Root entry supports exact integers, fractions, `i`, `sqrt(nonnegative integer)`, arithmetic and bounded integer powers. Unsupported notation and prose remain not checked. The parser never evaluates Python input.
+Do not put keys in frontend code. Without keys, the lesson, diagrams and exact maths checks still work with explicitly authored feedback; voice and model evaluation are unavailable. Provider calls use the configured accounts and may incur charges. Voice requires microphone permission and access to the configured models.
 
-## Evaluation services
+## How the checks work
 
-Jev calls TypeSafe's typed API with pinned `jev-1.13.0` and applicable behavioural assertions as Noul probabilities of satisfaction. A tick means probability above 0.65; a cross means below 0.35; a dot means uncertain from 0.35 through 0.65 inclusive. These are model judgments, not proven facts. Inapplicable requirements are unscored. Every failed or uncertain (0.35–0.65) assertion gets a separate GPT-6.1-Sol review that may support or disagree with the flag; exact quotes are validated against the stored evidence. It requires `TYPESAFE_API_KEY` in the server environment, loaded through the canonical service loader. No keys belong in this repository. API errors do not become passes. The threshold has not been calibrated; no live evaluation is claimed until a response is recorded.
+SymPy verifies mathematical values. The tutor receives that result and responds to the learner. Jev then judges the recorded reply against applicable teaching requirements; it is not asked to replace the symbolic maths checker.
 
-The investigator uses live OpenAI Responses with structured output. If unavailable or its quotes cannot be verified, the Jev result remains visible with an annotation error. The deliberate failure is authored and clearly separated from actual conversation records. Written feedback and voice reasoning both use `gpt-6.1-sol`; GPT-Live supplies Willow speech. Practice shares the lesson card layout: question and checked-root diagram above a compact answer bar. Feedback appears beside the answer area; Hint, Worked solution and Reset remain available. Questions use Chat to Argand below the card. Typed entry uses a local MathLive maths field with a small symbol keypad. Students check one root at a time; the server stores one canonical collection shared with the graph, preserves it after incorrect or unsupported entries, and deduplicates equivalent roots. My working is a collapsible, unverified note shared with the tutor. The backend also supports typed chat via the Responses API. GPT-Live voice uses WebRTC and the GPT-6.1-Sol reasoning backend. Use Chat to Argand beneath the lesson or practice; microphone permission is required. An expandable Transcript shows your words, tutor responses and maths-check results. The small stop square closes the session. Willow is the fixed tutor voice. Disconnects display the reported reason. Voice receives lesson changes and checked answer context; timestamped transcript fragments, UI snapshots and tool evidence are saved when Evaluate is pressed or the voice connection closes and can be assessed in the inline evidence panel. These are client-observed excerpts, not guaranteed complete turns or verified audio. Voice-check tool arguments are rechecked with SymPy before evaluation. Evidence remains in SQLite; the visible conversation list spans lesson/practice navigation in the current page session, and resets on a page reload. The reasoning backend can call check_roots, routed through /api/voice/check to the restricted SymPy checker for either lesson or practice. Results return as tool evidence; they do not submit a practice attempt. The tutor can operate the lesson controls through the tools described below; it does not submit spoken equations. Typed answers still use SymPy; generated explanations are not symbolically verified.
+| Component                            | Model or implementation    | Responsibility                                                |
+| ------------------------------------ | -------------------------- | ------------------------------------------------------------- |
+| Maths checker                        | Restricted parser + SymPy  | Exact arithmetic, root validity and collection completeness   |
+| Tutor reasoning and written feedback | `gpt-6.1-sol`              | Coaching grounded in the current lesson and checker evidence  |
+| Spoken conversation                  | `gpt-live-1`, Willow voice | Live speech with delegated reasoning and diagram tools        |
+| Assertion evaluator                  | TypeSafe `jev-1.13.0`      | Noul probabilities that individual requirements are satisfied |
+| Evidence annotations                 | `gpt-6.1-sol`              | Review failed/uncertain judgments and cite recorded evidence  |
 
-Load credentials with `source ~/the-lab/bin/load-secrets.sh openai` and restart the backend. API keys stay server-side. Model access and live audio must be tested with a configured project key. Voice integration follows the [GPT-Live WebRTC guide](https://developers.openai.com/api/docs/guides/voice-webrtc?api=live).
+Jev is TypeSafe's model for structured judgments. Each applicable requirement receives a probability of satisfaction: **✓ above 65%, • uncertain from 35% through 65%, ✗ below 35%**. These thresholds are prototype choices and are not calibrated. Inapplicable requirements are unscored. Summary counts describe assertion checks, not a percentage of successful students or conversations.
 
-## Verify
+Failed and uncertain checks receive an OpenAI annotation. The annotation may support or disagree with Jev's judgment, or report insufficient evidence. Citation text must occur in the saved evidence; rejected citations and provider errors remain visible as errors, never passes. The deliberate failure example is authored, but its evaluation and annotations use the real providers.
+
+## State and evidence
+
+- Lesson diagrams share one revisioned state. GPT-Live and its reasoning model receive the same snapshots. Diagram tools reject stale revisions and controls absent from the current slide.
+- `read_lesson_state` reads the visible state; `update_diagram` changes lesson controls; `check_roots` invokes the restricted checker. Navigation and practice sliders remain learner-controlled.
+- Typed roots and slider discoveries share one server-owned collection. Invalid input preserves correct work; equivalent roots are deduplicated. Exact arithmetic determines matches, not rounded graph labels.
+- **My working** is an optional, unverified note shared with the tutor. Unsupported maths and prose remain unverified.
+- SQLite stores immutable answer records, voice snapshots and evaluations. Voice evidence includes transcript fragments, UI context and tool observations; checker arguments are rechecked with SymPy. Snapshots can be evaluated while speaking, and later snapshots replace earlier versions in the visible results without double-counting them.
+- Voice excerpts are client-observed transcripts, not guaranteed complete turns or verified audio. The visible conversation list survives lesson/practice navigation but resets on a page reload; saved records remain in SQLite.
+
+Keys stay server-side. Evaluations send recorded replies and context to TypeSafe and OpenAI. Treat the local database as conversation data; it is excluded from Git along with environment files and SQLite journal files. This demo has no accounts or public-server authentication: keep it bound to loopback.
+
+## Code map
+
+```text
+src/App.tsx                 Lesson/practice flow and shared conversation records
+src/Lesson.tsx              Four-stage interactive lesson
+src/lessonState.ts          Revisioned state and diagram tool operations
+src/PracticeExplorer.tsx    Visual root discovery
+src/RootEntry.tsx           MathLive input and symbol keypad
+src/VoiceTutor.tsx          WebRTC lifecycle, transcript and tool dispatch
+src/EvidencePanel.tsx       Evaluation actions and conversation results
+src/EvidenceResponse.tsx    Expandable response and assertion evidence
+src/EvaluationSummary.tsx   Shared real/example summary layout
+src/evidence.ts             Evaluation types and record merging
+src/api.ts                  Typed local JSON requests
+server.py                   FastAPI routes and tutor/voice orchestration
+math_checks.py              Restricted expression parser and exact root checks
+curriculum.py               Exercise and explicitly authored guidance
+models.py                   Shared reasoning model identifier
+evaluation.py               Assertions, Jev judgments and annotations
+storage.py                  SQLite records
+```
+
+MathLive fonts are bundled locally. There is no browser-side provider key or external font dependency.
+
+## Verification and formatting
 
 ```sh
 npm run build
+npm run format:check
 .venv/bin/python -m pytest -q
+.venv/bin/ruff check .
+.venv/bin/ruff format --check .
 ```
 
-Current limits: no verified live voice trial yet, prose proof checking, handwriting, school accounts, teacher-reviewed curriculum certification, twelve-problem corpus or full model/harness comparison. This local prototype is for adult review, not deployment to students. No real learning gains have been measured.
+Use `npm run format` and `.venv/bin/ruff format .` to apply formatting. The TypeScript build rejects unused locals and parameters. Unit tests use isolated temporary databases and provider doubles; they do not call paid services.
 
-Source references: [QCAA Specialist Mathematics syllabus](https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_maths_specialist_25_syll.pdf), [TypeSafe API](https://docs.typesafe.ai/api), [TypeSafe Choice](https://docs.typesafe.ai/primitives/choice).
+For browser verification, install Playwright separately and start the local server:
 
+```sh
+uv pip install --python .venv/bin/python playwright
+.venv/bin/python -m playwright install chromium
+.venv/bin/python scripts/verify_inline_evidence.py
+```
 
-## Shared lesson state and diagram tools
+The inline-evidence test simulates voice transport, evaluator responses and completed-answer delivery while exercising the real UI and evidence storage. It covers evaluation during voice, snapshot replacement, automatic evaluation, uncertainty display and mobile width. Other scripts (`verify_lesson_tools.py`, `verify_practice_explorer.py`, `verify_root_entry.py`) exercise the local UI and checker; with provider credentials configured, answer submission also makes live tutor calls. They are not offline tests. Screenshots go to the system temporary directory under `argand-evidence`, or `ARGAND_EVIDENCE_DIR` when set.
 
-The lesson controls and diagrams use one revisioned state in `src/lessonState.ts`. After changes settle for 200 ms, the same snapshot is sent to GPT-Live with `session.thinking.append` and to its reasoning backend with `response.item.create`. This debounce combines rapid slider movement; tools always read the current state immediately. Snapshot delivery does not guarantee a model has finished processing it.
+## Scope
 
-`read_lesson_state` returns the current slide, explanation, controls and graph values (or current practice). `update_diagram` operates the same controls as the learner: coordinates, modulus/angle, root selection/squaring, wave phase and time. It requires the current revision; stale edits and controls not present on the current slide are rejected. Navigation remains learner-controlled. Tool results publish the resulting state to both models before reasoning continues.
+One lesson sequence and one practice problem are implemented. There is no handwriting recognition, verified prose-proof assessment, account system, school deployment or measured learning improvement. Evaluation reliability and curriculum suitability need further review. Live provider behaviour depends on account access and model availability; automated browser simulations do not prove microphone/audio quality.
 
-With the local server running and Python Playwright installed, run `python scripts/verify_lesson_tools.py`. It uses a simulated voice transport to exercise tool messages through the real UI, including stale edits, all interactive slides, practice transitions and equality of the state sent to both models. It makes no OpenAI call.
-
-## Visual practice
-Practice has modulus (0–3) and angle (0–360°, step 5°) sliders. The cubed point moves immediately with the sliders on a second, separately labelled scale. After the slider settles, the server computes the exact polar value with SymPy and automatically collects an exact match. Approximate coordinate labels do not determine correctness. Added roots use the same recorded-attempt flow as typed roots. Equivalent 0°/360° candidates are deduplicated. No undiscovered roots or snapping guides are shown. The voice and reasoning models share the current candidate, cubed result and verification state; practice controls remain learner-operated.
-
-Run `python scripts/verify_practice_explorer.py` against the local preview to check incorrect candidates, discovery of all roots, duplicates, reset, typed entry and laptop/mobile layout. These checks use the actual UI and local SymPy endpoint, without model calls.
-
-Answer checks and automatically collected roots now request concise OpenAI feedback using the exact SymPy result and prior attempts. Generated feedback is recorded as T1 for Jev, alongside the immutable checker evidence C1. If generation fails, the attempt is still saved with explicitly labelled checker-only feedback. Both voice and reasoning contexts include the latest feedback; no microphone or voice session starts automatically.
-
-MathLive fonts are bundled locally by Vite. Run `python scripts/verify_root_entry.py` for the mixed typed/visual journey, keypad, notes and viewport checks. This uses the configured live tutor.
+References: [QCAA Specialist Mathematics syllabus](https://www.qcaa.qld.edu.au/downloads/senior-qce/syllabuses/snr_maths_specialist_25_syll.pdf), [TypeSafe Noul](https://docs.typesafe.ai/primitives/noul), [OpenAI GPT-Live](https://developers.openai.com/api/docs/guides/live).

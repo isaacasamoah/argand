@@ -1,4 +1,301 @@
-import {WaveExample} from './WaveExample';
-import {useLessonState,updateLesson,chapters,polarPoint} from './lessonState';
-import {ArrowRight,ArrowLeft,Play} from 'lucide-react';
-export function Lesson({onPractice}:{onPractice:()=>void}){const{step,real,imag,modulus,angle,root,squared}=useLessonState();const setReal=(real:number)=>updateLesson({real});const setImag=(imag:number)=>updateLesson({imag});const setRoot=(root:number)=>updateLesson({root});const setSquared=(value:boolean|((v:boolean)=>boolean))=>updateLesson({squared:typeof value==='function'?value(squared):value});const setStep=(fn:(s:number)=>number)=>updateLesson({step:fn(step)});const roots=[[1,1],[-1,-1]];const point=step===0?[real,imag]:step===1?polarPoint(modulus,angle):squared?[0,2]:roots[root];const scale=47;const x=210+point[0]*scale,y=155-point[1]*scale;const ticks=[-2,-1,1,2];const c=chapters[step];return <section className="lesson-card"><div className="lesson-intro"><span className="pill">A short lesson · {step+1} / {chapters.length}</span><button className="text-link" onClick={onPractice}>Skip to practice <ArrowRight size={15}/></button></div><div className="lesson-layout"><div><h2>{c.title}</h2>{c.body.split('\n').map((paragraph,i)=><p key={i}>{paragraph}</p>)}{step===0?<div className="sliders"><label>Real part: {real.toFixed(1)}<input aria-label="Real part" type="range" min="-2" max="2" step=".1" value={real} onChange={e=>setReal(Number(e.target.value))}/></label><label>Imaginary coefficient: {imag.toFixed(1)}<input aria-label="Imaginary coefficient" type="range" min="-2" max="2" step=".1" value={imag} onChange={e=>setImag(Number(e.target.value))}/></label><b>{real.toFixed(1)} {imag<0?'−':'+'} {Math.abs(imag).toFixed(1)}i</b></div>:step===1?<div className="sliders"><label>Modulus: {modulus.toFixed(1)}<input aria-label="Modulus" type="range" min="0" max="2" step=".1" value={modulus} onChange={e=>updateLesson({modulus:Number(e.target.value)})}/></label><label>Angle: {angle}°<input aria-label="Angle" type="range" min="0" max="360" step="5" value={angle} onChange={e=>updateLesson({angle:Number(e.target.value)})}/></label>{modulus===0&&<span className="small">At the origin, the argument is undefined.</span>}</div>:step===2?<><div className="root-options">{['1 + i','−1 − i'].map((label,i)=><button className={root===i?'picked':''} key={label} onClick={()=>{setRoot(i);setSquared(false)}}>{label}</button>)}</div><button className="primary" onClick={()=>setSquared(v=>!v)}><Play size={14}/>{squared?'Show the root':'Square this root'}</button><p className="small">{squared?'Distance (√2)² = 2 · angle '+[90,450][root]+'° · result 2i':'Distance √2 · angle '+[45,225][root]+'°'}</p></>:null}</div><div>{step===3?<WaveExample/>:<><svg className="lesson-diagram" viewBox="0 0 420 310" role="img" aria-label={`Complex plane: real ${point[0]}, imaginary ${point[1]}`}><defs><pattern id="lesson-grid" width="23.5" height="23.5" patternUnits="userSpaceOnUse"><path d="M23.5 0H0V23.5" fill="none" stroke="#e6eeef"/></pattern></defs><rect width="420" height="310" rx="12" fill="url(#lesson-grid)"/><path d="M15 155H405 M210 15V290" stroke="#a3b5bd"/>{ticks.map(t=><g key={t}><path d={`M${210+t*scale} 151v8 M206 ${155-t*scale}h8`} stroke="#7d949d"/><text x={210+t*scale} y="176" textAnchor="middle">{t}</text><text x="197" y={159-t*scale} textAnchor="end">{t}</text></g>)}<text x="395" y="142" textAnchor="end">Real</text><text x="220" y="23">Imaginary</text><text x="217" y="175">0</text>{step===2&&!squared&&<><circle cx="210" cy="155" r={Math.sqrt(2)*scale} fill="none" stroke="#93cfc4" strokeDasharray="4 5"/>{roots.map(([a,b],i)=><circle key={i} cx={210+a*scale} cy={155-b*scale} r="4" fill="#a3d5cc"/>)}</>}{step===1&&modulus>0&&<><path d={angle===360?'M240 155 A30 30 0 1 0 180 155 A30 30 0 1 0 240 155':`M240 155 A30 30 0 ${angle>180?1:0} 0 ${210+30*Math.cos(angle*Math.PI/180)} ${155-30*Math.sin(angle*Math.PI/180)}`} fill="none" stroke="#c08628" strokeWidth="2"/><text x="250" y="145">{angle}°</text></>}<path d={`M210 155H${x}V${y}`} fill="none" stroke="#daaa67" strokeDasharray="4 4"/><path d={`M210 155L${x} ${y}`} stroke="#078d85" strokeWidth="2"/><circle cx={x} cy={y} r="7" fill="#078d85"/><text x={x} y={y-14} textAnchor="middle" className="point-label">{step===2?(squared?'2i':['1 + i','−1 − i'][root]):`(${point[0].toFixed(1)}, ${point[1].toFixed(1)})`}</text></svg><p className="diagram-caption">{c.label} · both axes use the same scale</p></>}</div></div><div className="lesson-navigation"><button className="outline" disabled={step===0} onClick={()=>{setStep(s=>s-1);setSquared(false)}}><ArrowLeft size={15}/>Back</button><div className="lesson-dots">{chapters.map((_,i)=><span key={i} className={step===i?'current':''}/>)}</div><button className="primary" onClick={()=>{if(step===chapters.length-1)onPractice();else setStep(s=>s+1)}}>{step===chapters.length-1?'Try it yourself':'Next'}<ArrowRight size={15}/></button></div></section>}
+import { WaveExample } from "./WaveExample";
+import {
+  useLessonState,
+  updateLesson,
+  chapters,
+  polarPoint,
+} from "./lessonState";
+import { ArrowRight, ArrowLeft, Play } from "lucide-react";
+export function Lesson({ onPractice }: { onPractice: () => void }) {
+  const { step, real, imag, modulus, angle, root, squared } = useLessonState();
+  const setReal = (real: number) => updateLesson({ real });
+  const setImag = (imag: number) => updateLesson({ imag });
+  const setRoot = (root: number) => updateLesson({ root });
+  const setSquared = (value: boolean | ((v: boolean) => boolean)) =>
+    updateLesson({
+      squared: typeof value === "function" ? value(squared) : value,
+    });
+  const setStep = (fn: (s: number) => number) =>
+    updateLesson({ step: fn(step) });
+  const roots = [
+    [1, 1],
+    [-1, -1],
+  ];
+  const point =
+    step === 0
+      ? [real, imag]
+      : step === 1
+        ? polarPoint(modulus, angle)
+        : squared
+          ? [0, 2]
+          : roots[root];
+  const scale = 47;
+  const x = 210 + point[0] * scale,
+    y = 155 - point[1] * scale;
+  const ticks = [-2, -1, 1, 2];
+  const c = chapters[step];
+  return (
+    <section className="lesson-card">
+      <div className="lesson-intro">
+        <span className="pill">
+          A short lesson · {step + 1} / {chapters.length}
+        </span>
+        <button className="text-link" onClick={onPractice}>
+          Skip to practice <ArrowRight size={15} />
+        </button>
+      </div>
+      <div className="lesson-layout">
+        <div>
+          <h2>{c.title}</h2>
+          {c.body.split("\n").map((paragraph, i) => (
+            <p key={i}>{paragraph}</p>
+          ))}
+          {step === 0 ? (
+            <div className="sliders">
+              <label>
+                Real part: {real.toFixed(1)}
+                <input
+                  aria-label="Real part"
+                  type="range"
+                  min="-2"
+                  max="2"
+                  step=".1"
+                  value={real}
+                  onChange={(e) => setReal(Number(e.target.value))}
+                />
+              </label>
+              <label>
+                Imaginary coefficient: {imag.toFixed(1)}
+                <input
+                  aria-label="Imaginary coefficient"
+                  type="range"
+                  min="-2"
+                  max="2"
+                  step=".1"
+                  value={imag}
+                  onChange={(e) => setImag(Number(e.target.value))}
+                />
+              </label>
+              <b>
+                {real.toFixed(1)} {imag < 0 ? "−" : "+"}{" "}
+                {Math.abs(imag).toFixed(1)}i
+              </b>
+            </div>
+          ) : step === 1 ? (
+            <div className="sliders">
+              <label>
+                Modulus: {modulus.toFixed(1)}
+                <input
+                  aria-label="Modulus"
+                  type="range"
+                  min="0"
+                  max="2"
+                  step=".1"
+                  value={modulus}
+                  onChange={(e) =>
+                    updateLesson({ modulus: Number(e.target.value) })
+                  }
+                />
+              </label>
+              <label>
+                Angle: {angle}°
+                <input
+                  aria-label="Angle"
+                  type="range"
+                  min="0"
+                  max="360"
+                  step="5"
+                  value={angle}
+                  onChange={(e) =>
+                    updateLesson({ angle: Number(e.target.value) })
+                  }
+                />
+              </label>
+              {modulus === 0 && (
+                <span className="small">
+                  At the origin, the argument is undefined.
+                </span>
+              )}
+            </div>
+          ) : step === 2 ? (
+            <>
+              <div className="root-options">
+                {["1 + i", "−1 − i"].map((label, i) => (
+                  <button
+                    className={root === i ? "picked" : ""}
+                    key={label}
+                    onClick={() => {
+                      setRoot(i);
+                      setSquared(false);
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <button className="primary" onClick={() => setSquared((v) => !v)}>
+                <Play size={14} />
+                {squared ? "Show the root" : "Square this root"}
+              </button>
+              <p className="small">
+                {squared
+                  ? "Distance (√2)² = 2 · angle " +
+                    [90, 450][root] +
+                    "° · result 2i"
+                  : "Distance √2 · angle " + [45, 225][root] + "°"}
+              </p>
+            </>
+          ) : null}
+        </div>
+        <div>
+          {step === 3 ? (
+            <WaveExample />
+          ) : (
+            <>
+              <svg
+                className="lesson-diagram"
+                viewBox="0 0 420 310"
+                role="img"
+                aria-label={`Complex plane: real ${point[0]}, imaginary ${point[1]}`}
+              >
+                <defs>
+                  <pattern
+                    id="lesson-grid"
+                    width="23.5"
+                    height="23.5"
+                    patternUnits="userSpaceOnUse"
+                  >
+                    <path d="M23.5 0H0V23.5" fill="none" stroke="#e6eeef" />
+                  </pattern>
+                </defs>
+                <rect
+                  width="420"
+                  height="310"
+                  rx="12"
+                  fill="url(#lesson-grid)"
+                />
+                <path d="M15 155H405 M210 15V290" stroke="#a3b5bd" />
+                {ticks.map((t) => (
+                  <g key={t}>
+                    <path
+                      d={`M${210 + t * scale} 151v8 M206 ${155 - t * scale}h8`}
+                      stroke="#7d949d"
+                    />
+                    <text x={210 + t * scale} y="176" textAnchor="middle">
+                      {t}
+                    </text>
+                    <text x="197" y={159 - t * scale} textAnchor="end">
+                      {t}
+                    </text>
+                  </g>
+                ))}
+                <text x="395" y="142" textAnchor="end">
+                  Real
+                </text>
+                <text x="220" y="23">
+                  Imaginary
+                </text>
+                <text x="217" y="175">
+                  0
+                </text>
+                {step === 2 && !squared && (
+                  <>
+                    <circle
+                      cx="210"
+                      cy="155"
+                      r={Math.sqrt(2) * scale}
+                      fill="none"
+                      stroke="#93cfc4"
+                      strokeDasharray="4 5"
+                    />
+                    {roots.map(([a, b], i) => (
+                      <circle
+                        key={i}
+                        cx={210 + a * scale}
+                        cy={155 - b * scale}
+                        r="4"
+                        fill="#a3d5cc"
+                      />
+                    ))}
+                  </>
+                )}
+                {step === 1 && modulus > 0 && (
+                  <>
+                    <path
+                      d={
+                        angle === 360
+                          ? "M240 155 A30 30 0 1 0 180 155 A30 30 0 1 0 240 155"
+                          : `M240 155 A30 30 0 ${angle > 180 ? 1 : 0} 0 ${210 + 30 * Math.cos((angle * Math.PI) / 180)} ${155 - 30 * Math.sin((angle * Math.PI) / 180)}`
+                      }
+                      fill="none"
+                      stroke="#c08628"
+                      strokeWidth="2"
+                    />
+                    <text x="250" y="145">
+                      {angle}°
+                    </text>
+                  </>
+                )}
+                <path
+                  d={`M210 155H${x}V${y}`}
+                  fill="none"
+                  stroke="#daaa67"
+                  strokeDasharray="4 4"
+                />
+                <path
+                  d={`M210 155L${x} ${y}`}
+                  stroke="#078d85"
+                  strokeWidth="2"
+                />
+                <circle cx={x} cy={y} r="7" fill="#078d85" />
+                <text
+                  x={x}
+                  y={y - 14}
+                  textAnchor="middle"
+                  className="point-label"
+                >
+                  {step === 2
+                    ? squared
+                      ? "2i"
+                      : ["1 + i", "−1 − i"][root]
+                    : `(${point[0].toFixed(1)}, ${point[1].toFixed(1)})`}
+                </text>
+              </svg>
+              <p className="diagram-caption">
+                {c.label} · both axes use the same scale
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="lesson-navigation">
+        <button
+          className="outline"
+          disabled={step === 0}
+          onClick={() => {
+            setStep((s) => s - 1);
+            setSquared(false);
+          }}
+        >
+          <ArrowLeft size={15} />
+          Back
+        </button>
+        <div className="lesson-dots">
+          {chapters.map((_, i) => (
+            <span key={i} className={step === i ? "current" : ""} />
+          ))}
+        </div>
+        <button
+          className="primary"
+          onClick={() => {
+            if (step === chapters.length - 1) onPractice();
+            else setStep((s) => s + 1);
+          }}
+        >
+          {step === chapters.length - 1 ? "Try it yourself" : "Next"}
+          <ArrowRight size={15} />
+        </button>
+      </div>
+    </section>
+  );
+}

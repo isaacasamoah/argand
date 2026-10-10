@@ -5,3 +5,6 @@ __pycache__/
 .pytest_cache/
 *.sqlite3
 .env*
+*.sqlite3-*
+.ruff_cache/
+.DS_Store
