@@ -17,18 +17,6 @@ def test_no_false_jev_pass(client):
  assert a['checker']['status']=='incomplete'
  r=client.post('/api/attempts/'+a['id']+'/evaluate');assert r.status_code==503
 
-def test_failure_mock_cites_immutable_evidence(client):
- a=client.post('/api/attempts',json={'problem_id':'roots-8','action':'failure_fixture'}).json()
- assert a['tutor_source']=='deliberate failure fixture'
- r=client.post('/api/attempts/'+a['id']+'/investigate').json()
- assert r['classification']=='supported_failure' and r['source'].startswith('Mock')
- assert all(c['quote']==a['evidence'][c['id']] for c in r['citations'])
-
-def test_mock_does_not_invent_unknown_diagnosis(client):
- a=client.post('/api/attempts',json={'problem_id':'roots-8','text':'99'}).json()
- r=client.post('/api/attempts/'+a['id']+'/investigate').json()
- assert r['classification']=='insufficient_evidence'
-
 def test_chat_and_voice_without_key(client,monkeypatch):
  monkeypatch.delenv('OPENAI_API_KEY',raising=False)
  assert client.post('/api/attempts',json={'problem_id':'roots-8','action':'chat','text':'Why?'}).status_code==503
@@ -50,6 +38,7 @@ def test_voice_server_owns_models_and_context(client,monkeypatch):
  r=client.post('/api/voice/session',headers={'Origin':'http://127.0.0.1:18770'},json={'sdp':'offer','problem_id':'roots-8','parent_id':a['id']})
  assert r.status_code==200
  assert captured['session']['model']=='gpt-live-1'
+ assert captured['session']['delegation']['responses']['model']=='gpt-6.1-sol'
  assert captured['session']['audio']['output']['voice']=='willow'
  assert captured['session']['delegation']['responses']['reasoning']['effort']=='medium'
  assert 'incomplete' in captured['session']['input'][0]['content'][0]['text']
@@ -105,6 +94,7 @@ def test_model_feedback_receives_exact_checker(client,monkeypatch,text,status):
   async def __aexit__(self,*args):pass
   async def post(self,url,**kwargs):
    state=server.json.loads(kwargs['json']['input'])
+   assert kwargs['json']['model']=='gpt-6.1-sol' and kwargs['json']['reasoning']['effort']=='low'
    assert state['checker']['status']==status and state['question']==text
    assert 'do not name missing roots' in kwargs['json']['instructions']
    return server.httpx.Response(200,json={'output':[{'type':'message','content':[{'type':'output_text','text':'Feedback grounded in the supplied result.'}]}]},request=server.httpx.Request('POST',url))
@@ -146,3 +136,59 @@ def test_single_roots_accumulate_without_losing_verified_work(client):
 @pytest.mark.parametrize('value',['(1)/(2)','i^2','i(1+1)','sqrt(3)i','(1+i)(1-i)'])
 def test_math_editor_notation_is_supported(value):
  assert server.check(server.PROBLEMS[0],value)['status']!='not_checked'
+
+def test_live_assertions_use_probability_and_actual_response(client,monkeypatch):
+ a=client.post('/api/attempts',json={'problem_id':'roots-8','action':'failure_fixture'}).json()
+ monkeypatch.setenv('TYPESAFE_API_KEY','dummy');monkeypatch.setenv('OPENAI_API_KEY','dummy')
+ calls=[]
+ class FakeClient:
+  def __init__(self,**kwargs):pass
+  async def __aenter__(self):return self
+  async def __aexit__(self,*args):pass
+  async def post(self,url,**kwargs):
+   body=kwargs['json'];calls.append(body)
+   if 'typesafe' in url:
+    assert body['state']['tutor']==a['tutor']
+    assert all(q['type']=='noul' for q in body['questions'].values())
+    data={'answers':{i:{'type':'noul','noul':.05 if i=='A01' else .99} for i in body['questions']}}
+   else:
+    assert body['model']=='gpt-6.1-sol'
+    data={'output':[{'content':[{'type':'output_text','text':server.json.dumps({'classification':'supported_failure','statement':'The reply calls an incomplete set complete.','citations':[{'id':'T1','quote':a['tutor']},{'id':'C1','quote':a['evidence']['C1']}]})}]}]}
+   return server.httpx.Response(200,json=data,request=server.httpx.Request('POST',url))
+ monkeypatch.setattr(server.httpx,'AsyncClient',FakeClient)
+ r=client.post('/api/attempts/'+a['id']+'/evaluate');assert r.status_code==200
+ rows={x['id']:x for x in r.json()['rows']}
+ assert rows['A01']['state']=='fail' and rows['A01']['probability']==.05
+ assert rows['A01']['annotation']['classification']=='supported_failure'
+ assert rows['A07']['state']=='not_applicable' and len(calls)==2
+
+def test_voice_evidence_scopes_mode_and_recomputes_tool_checks(client):
+ events=[{'who':'You','text':'Check 2','context':{'mode':'practice','latestAttempt':None}}, {'who':'Tool','args':{'example':'practice','roots':'2'},'result':{'checker':{'status':'complete'}}}, {'who':'Tutor','text':'It works, but there are more roots.','context':{'mode':'practice','latestAttempt':None}}, {'who':'You','text':'Explain the lesson','context':{'mode':'lesson'}}, {'who':'Tutor','text':'The real axis is horizontal.','context':{'mode':'lesson'}}]
+ r=client.post('/api/voice/evidence',json={'session_id':'test','events':events});assert r.status_code==200
+ first,last=r.json();assert first['checker']['status']=='incomplete' and last['checker']['status']=='not_checked'
+ assert first['mode']=='practice' and last['mode']=='lesson'
+ assert 'Explain the lesson' not in first['evidence']['V1']
+ assert client.post('/api/voice/evidence',json={'session_id':'test','events':events}).json()[0]['id']==first['id']
+
+@pytest.mark.parametrize('bad',[1.2,True,'0.8'])
+def test_invalid_jev_probability_never_passes(client,monkeypatch,bad):
+ a=client.post('/api/attempts',json={'problem_id':'roots-8','text':'2'}).json();monkeypatch.setenv('TYPESAFE_API_KEY','dummy')
+ class FakeClient:
+  def __init__(self,**kwargs):pass
+  async def __aenter__(self):return self
+  async def __aexit__(self,*args):pass
+  async def post(self,url,**kwargs):return server.httpx.Response(200,json={'answers':{i:{'noul':bad} for i in kwargs['json']['questions']}},request=server.httpx.Request('POST',url))
+ monkeypatch.setattr(server.httpx,'AsyncClient',FakeClient)
+ assert client.post('/api/attempts/'+a['id']+'/evaluate').status_code==502
+
+def test_investigator_rejects_invented_quotes(client,monkeypatch):
+ import asyncio
+ a=client.post('/api/attempts',json={'problem_id':'roots-8','action':'failure_fixture'}).json()
+ monkeypatch.setenv('OPENAI_API_KEY','dummy')
+ class FakeClient:
+  def __init__(self,**kwargs):pass
+  async def __aenter__(self):return self
+  async def __aexit__(self,*args):pass
+  async def post(self,url,**kwargs):return server.httpx.Response(200,json={'output':[{'content':[{'type':'output_text','text':server.json.dumps({'classification':'supported_failure','statement':'Invented claim','citations':[{'id':'T1','quote':'This was never said.'}]})}]}]},request=server.httpx.Request('POST',url))
+ monkeypatch.setattr(server.httpx,'AsyncClient',FakeClient)
+ result=asyncio.run(server.explain_failure(a,{'id':'A01'}));assert 'error' in result and 'statement' not in result
