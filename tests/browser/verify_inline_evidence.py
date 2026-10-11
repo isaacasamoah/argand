@@ -20,7 +20,7 @@ with sync_playwright() as p:
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.add_init_script(
-        """class FakePeer{iceGatheringState='complete';localDescription=null;constructor(){window.pc=this}createDataChannel(){return this.channel={readyState:'open',send:s=>{if(JSON.parse(s).type==='session.close')queueMicrotask(()=>this.channel.onmessage({data:JSON.stringify({type:'session.closed',reason:'close_requested'})}))},close(){this.readyState='closed'}}}async createOffer(){return {type:'offer',sdp:'fake'}}async setLocalDescription(s){this.localDescription=s}async setRemoteDescription(){this.channel.onmessage({data:JSON.stringify({type:'session.started'})})}addTrack(){}close(){}}window.RTCPeerConnection=FakePeer;navigator.mediaDevices.getUserMedia=async()=>new MediaStream();window.emit=e=>window.pc.channel.onmessage({data:JSON.stringify(e)});"""
+        """class FakePeer{iceGatheringState='complete';localDescription=null;constructor(){window.pc=this}createDataChannel(){return this.channel={readyState:'open',send:s=>{window.lastVoiceSend=JSON.parse(s);if(JSON.parse(s).type==='session.close')queueMicrotask(()=>this.channel.onmessage({data:JSON.stringify({type:'session.closed',reason:'close_requested'})}))},close(){this.readyState='closed'}}}async createOffer(){return {type:'offer',sdp:'fake'}}async setLocalDescription(s){this.localDescription=s}async setRemoteDescription(){this.channel.onmessage({data:JSON.stringify({type:'session.started'})})}addTrack(){}close(){}}window.RTCPeerConnection=FakePeer;navigator.mediaDevices.getUserMedia=async()=>new MediaStream();window.emit=e=>window.pc.channel.onmessage({data:JSON.stringify(e)});"""
     )
     page.route(
         "**/api/voice/session",
@@ -40,7 +40,12 @@ with sync_playwright() as p:
     page.evaluate(
         "emit({type:'session.input_transcript.delta',delta:'What is the horizontal axis?',start_ms:1,end_ms:5});emit({type:'session.output_transcript.delta',delta:'The horizontal axis represents the real part.',start_ms:6,end_ms:10})"
     )
+    # A normal long voice stream used to exceed both event and byte limits.
+    page.evaluate(
+        "for(let i=0;i<2500;i++) emit({type:'session.output_transcript.delta',delta:' more context',start_ms:6,end_ms:10})"
+    )
     page.get_by_role("button", name="Your practice", exact=False).click()
+    page.wait_for_function("JSON.stringify(window.lastVoiceSend).includes('SymPy exact checker')")
     page.evaluate(
         "emit({type:'session.input_transcript.delta',delta:'What should I try?',start_ms:11,end_ms:15});emit({type:'session.output_transcript.delta',delta:'Try a point on the real axis and compare its cube with 8.',start_ms:16,end_ms:20})"
     )
@@ -164,6 +169,45 @@ with sync_playwright() as p:
     assert not errors, errors
     print(
         "PASS: active-voice evaluation, uncertain dots, snapshot replacement, automatic completion evaluation, isolated failure summary, mobile width. Voice/evaluator/completion simulated; persistence real.",
+        flush=True,
+    )
+    # A failed voice capture must not block a newly saved answer evaluation.
+    page.route(
+        "**/api/voice/evidence",
+        lambda route: route.fulfill(
+            status=413, json={"detail": "Voice evidence too large"}
+        ),
+    )
+    page.unroute("**/api/attempts")
+    partial = dict(
+        attempt,
+        id="capture-failure-answer",
+        checker={
+            "status": "incomplete",
+            "detail": "One root",
+            "valid": [True],
+            "points": [],
+        },
+        collected_roots=["2"],
+    )
+    page.route("**/api/attempts", lambda route: route.fulfill(json=partial))
+    page.locator("math-field").evaluate(
+        "e=>{e.value='2';e.dispatchEvent(new Event('input',{bubbles:true}))}"
+    )
+    page.get_by_role("button", name="Check this root", exact=True).click()
+    page.wait_for_function(
+        "document.querySelector('.inline-evidence > .evaluation-overall')?.textContent.includes('3 of 4')"
+    )
+    page.get_by_role("button", name="Evaluate", exact=True).click()
+    page.wait_for_function(
+        "document.querySelector('.inline-evidence > .evaluation-overall')?.textContent.includes('4 of 4')"
+    )
+    assert (
+        "exceeds the evidence limit"
+        in page.locator(".inline-evidence > p[role=status]").inner_text()
+    )
+    print(
+        "PASS: long transcript saved; voice capture failure still evaluates saved answers.",
         flush=True,
     )
     b.close()

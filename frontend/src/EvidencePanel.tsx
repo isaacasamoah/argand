@@ -46,8 +46,16 @@ export function EvidencePanel({
     setMessage("");
     onToggle(true);
     try {
-      const current = await capture();
-      if (!current.length) setMessage("No tutor responses to evaluate yet.");
+      let current = records;
+      try {
+        current = await capture();
+      } catch (e) {
+        setMessage((e as Error).message);
+      }
+      if (!current.length)
+        setMessage(
+          (previous) => previous || "No tutor responses to evaluate yet.",
+        );
       await check(current.filter((r) => !results[r.id]));
     } catch (e) {
       setMessage((e as Error).message);

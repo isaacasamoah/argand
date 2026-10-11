@@ -6,8 +6,9 @@
   "scripts": {
     "build": "tsc --noEmit && vite build",
     "dev": "vite build --watch",
-    "format": "prettier --write src package.json tsconfig.json vite.config.ts index.html ../README.md",
-    "format:check": "prettier --check src package.json tsconfig.json vite.config.ts index.html ../README.md"
+    "format": "prettier --write src tests package.json tsconfig.json vite.config.ts index.html ../README.md",
+    "format:check": "prettier --check src tests package.json tsconfig.json vite.config.ts index.html ../README.md",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs"
   },
   "dependencies": {
     "katex": "0.18.2",

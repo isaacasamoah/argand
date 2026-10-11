@@ -1,3 +1,4 @@
+import { compactVoiceEvidence } from "./voiceEvidence";
 import type { EvidenceRecord } from "./evidence";
 import { lessonSnapshot, applyDiagramUpdate } from "./lessonState";
 import {
@@ -38,7 +39,7 @@ export const VoiceTutor = forwardRef<VoiceHandle, Props>(
       sessionId = useRef("");
     async function saveEvidence(): Promise<EvidenceRecord[]> {
       if (!evidence.current.length) return [];
-      const events = [...evidence.current];
+      const events = compactVoiceEvidence(evidence.current);
       const r = await fetch("/api/voice/evidence", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -46,7 +47,9 @@ export const VoiceTutor = forwardRef<VoiceHandle, Props>(
       });
       if (!r.ok)
         throw new Error(
-          "Voice evidence could not be saved. Try Evaluate again.",
+          r.status === 413 || r.status === 422
+            ? "This voice conversation exceeds the evidence limit. Saved answer responses can still be evaluated."
+            : "Voice evidence could not be saved. Saved answer responses can still be evaluated; try again to include voice.",
         );
       const records = await r.json();
       latest.current.onEvidence?.(records);

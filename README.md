@@ -64,7 +64,7 @@ Failed and uncertain checks receive an OpenAI annotation. The annotation may sup
 - `read_lesson_state` reads the visible state; `update_diagram` changes lesson controls; `check_roots` invokes the restricted checker. Navigation and practice sliders remain learner-controlled.
 - Typed roots and slider discoveries share one server-owned collection. Invalid input preserves correct work; equivalent roots are deduplicated. Exact arithmetic determines matches, not rounded graph labels.
 - **My working** is an optional, unverified note shared with the tutor. Unsupported maths and prose remain unverified.
-- SQLite stores immutable answer records, voice snapshots and evaluations. Voice evidence includes transcript fragments, UI context and tool observations; checker arguments are rechecked with SymPy. Snapshots can be evaluated while speaking, and later snapshots replace earlier versions in the visible results without double-counting them.
+- SQLite stores immutable answer records, voice snapshots and evaluations. Consecutive transcript fragments share one context snapshot in transport, retaining each fragment’s text and timestamps. Voice evidence includes transcript fragments, UI context and tool observations; checker arguments are rechecked with SymPy. Snapshots can be evaluated while speaking, and later snapshots replace earlier versions in the visible results without double-counting them.
 - Voice excerpts are client-observed transcripts, not guaranteed complete turns or verified audio. The visible conversation list survives lesson/practice navigation but resets on a page reload; saved records remain in SQLite.
 
 Keys stay server-side. Evaluations send recorded replies and context to TypeSafe and OpenAI. Treat the local database as conversation data; it is excluded from Git along with environment files and SQLite journal files. This demo has no accounts or public-server authentication: keep it bound to loopback.
@@ -100,6 +100,7 @@ MathLive fonts are bundled locally. There is no browser-side provider key or ext
 ```sh
 npm --prefix frontend run build
 npm --prefix frontend run format:check
+npm --prefix frontend test
 .venv/bin/python -m pytest -c backend/pyproject.toml backend/tests -q
 .venv/bin/ruff check --config backend/pyproject.toml .
 .venv/bin/ruff format --config backend/pyproject.toml --check .
